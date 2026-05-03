@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RASC — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07080a;
+  --surface: #0d0f13;
+  --surface2: #13161c;
+  --surface3: #181c24;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --text: #e2e4ea;
+  --muted: #5a6070;
+  --muted2: #8892a4;
+  --accent: #00d4ff;
+  --accent2: #7b61ff;
+  --green: #00e5a0;
+  --red: #ff4d6a;
+  --amber: #ffb340;
+  --pink: #ff6eb4;
+  --syne: 'Syne', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --lora: 'Lora', serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--syne);font-size:14px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+
+/* NOISE TEXTURE */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+
+/* GLOW ORBS */
+.orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
+.orb1{width:600px;height:600px;background:rgba(0,212,255,.04);top:-200px;right:-100px}
+.orb2{width:400px;height:400px;background:rgba(123,97,255,.05);bottom:-100px;left:-100px}
+
+/* SIDEBAR */
+.sidebar{position:fixed;left:0;top:0;width:220px;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:transform .3s}
+.logo-area{padding:28px 24px 24px;border-bottom:1px solid var(--border)}
+.logo-rasc{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.logo-rasc span{color:var(--accent)}
+.logo-sub{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px;letter-spacing:.12em}
+.nav{flex:1;padding:20px 12px;display:flex;flex-direction:column;gap:2px}
+.nav-section{font-size:9px;font-weight:600;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;padding:12px 12px 6px;font-family:var(--mono)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted2);transition:all .15s;border:1px solid transparent;text-decoration:none}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:rgba(0,212,255,.08);color:var(--accent);border-color:rgba(0,212,255,.15)}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.nav-badge{margin-left:auto;font-size:10px;background:var(--red);color:#fff;padding:1px 6px;border-radius:10px;font-family:var(--mono)}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+.user-card{display:flex;align-items:center;gap:10px}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.user-name{font-size:13px;font-weight:600}
+.user-role{font-size:10px;color:var(--muted);font-family:var(--mono)}
+
+/* MAIN */
+.main{margin-left:220px;min-height:100vh;position:relative;z-index:1}
+.topbar{padding:20px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(7,8,10,.8);backdrop-filter:blur(12px);position:sticky;top:0;z-index:50}
+.page-title{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.page-date{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.pulse-live{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-family:var(--mono)}
+.pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+.add-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--accent);border:none;border-radius:8px;color:#000;font-family:var(--syne);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.add-btn:hover{background:#00bde8;transform:translateY(-1px)}
+
+/* CONTENT */
+.content{padding:28px 32px}
+.section{display:none}
+.section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;position:relative;overflow:hidden;transition:border-color .2s}
+.kpi-card:hover{border-color:var(--border2)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi-card.c-cyan::before{background:var(--accent)}
+.kpi-card.c-purple::before{background:var(--accent2)}
+.kpi-card.c-green::before{background:var(--green)}
+.kpi-card.c-amber::before{background:var(--amber)}
+.kpi-card.c-pink::before{background:var(--pink)}
+.kpi-card.c-red::before{background:var(--red)}
+.kpi-label{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-family:var(--mono);margin-bottom:10px}
+.kpi-value{font-size:28px;font-weight:700;letter-spacing:-.03em;margin-bottom:4px;font-family:var(--mono)}
+.kpi-sub{font-size:11px;color:var(--muted2);display:flex;align-items:center;gap:4px}
+.kpi-delta{font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:4px}
+.delta-up{background:rgba(0,229,160,.12);color:var(--green)}
+.delta-down{background:rgba(255,77,106,.12);color:var(--red)}
+
+/* GRID 2 COL */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-65{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:16px}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:600;letter-spacing:.02em}
+.card-action{font-size:11px;color:var(--accent);cursor:pointer;font-family:var(--mono)}
+.card-body{padding:20px}
+
+/* TABLE */
+.table{width:100%;border-collapse:collapse}
+.table th{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;text-align:left;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.table td{padding:12px 12px;font-size:13px;border-bottom:1px solid var(--border)}
+.table tr:last-child td{border-bottom:none}
+.table tr:hover td{background:var(--surface2)}
+.status-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;font-family:var(--mono)}
+.pill-green{background:rgba(0,229,160,.12);color:var(--green)}
+.pill-amber{background:rgba(255,179,64,.12);color:var(--amber)}
+.pill-red{background:rgba(255,77,106,.12);color:var(--red)}
+.pill-blue{background:rgba(0,212,255,.12);color:var(--accent)}
+.pill-purple{background:rgba(123,97,255,.12);color:var(--accent2)}
+
+/* PROGRESS BAR */
+.progress-wrap{margin-bottom:14px}
+.progress-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px}
+.progress-label span:last-child{font-family:var(--mono);color:var(--muted2)}
+.progress-bar{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;border-radius:2px;transition:width .8s ease}
+
+/* TIMELINE */
+.timeline{display:flex;flex-direction:column;gap:12px}
+.tl-item{display:flex;gap:12px;align-items:flex-start}
+.tl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.tl-content{flex:1}
+.tl-title{font-size:13px;font-weight:500}
+.tl-meta{font-size:11px;color:var(--muted);font-family:var(--mono)}
+
+/* AGENT CARDS */
+.agent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.agent-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;transition:all .2s;cursor:pointer}
+.agent-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.agent-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px}
+.agent-name{font-size:14px;font-weight:600;margin-bottom:4px}
+.agent-specialty{font-size:11px;color:var(--muted2);font-family:var(--mono);margin-bottom:12px}
+.agent-stats{display:flex;gap:12px}
+.agent-stat{font-size:11px;color:var(--muted)}
+.agent-stat strong{color:var(--text);font-family:var(--mono)}
+
+/* SUBSCRIPTION */
+.sub-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.sub-item:last-child{border-bottom:none}
+.sub-left{display:flex;align-items:center;gap:12px}
+.sub-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-family:var(--mono);font-weight:700;font-size:12px}
+.sub-name{font-size:13px;font-weight:500}
+.sub-cycle{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.sub-price{font-size:14px;font-weight:600;font-family:var(--mono);text-align:right}
+.sub-next{font-size:10px;color:var(--muted);font-family:var(--mono)}
+
+/* PIPELINE */
+.pipeline{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.pipe-col{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
+.pipe-col-title{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-family:var(--mono);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.pipe-count{background:var(--surface2);padding:1px 7px;border-radius:10px;color:var(--text)}
+.pipe-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
+.pipe-card:hover{border-color:var(--border2)}
+.pipe-card-name{font-size:13px;font-weight:500;margin-bottom:4px}
+.pipe-card-type{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.pipe-card-value{font-size:12px;font-family:var(--mono);color:var(--green);margin-top:8px}
+
+/* CONTENT CALENDAR */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px}
+.cal-day{background:var(--surface2);border-radius:8px;padding:8px;min-height:70px}
+.cal-day-label{font-size:9px;color:var(--muted);font-family:var(--mono);margin-bottom:6px}
+.cal-post{font-size:9px;padding:3px 5px;border-radius:4px;margin-bottom:3px;line-height:1.3}
+.cal-post.reels{background:rgba(255,110,180,.15);color:var(--pink)}
+.cal-post.feed{background:rgba(0,212,255,.15);color:var(--accent)}
+.cal-post.stories{background:rgba(255,179,64,.15);color:var(--amber)}
+
+/* MINI CHART */
+.mini-chart{display:flex;align-items:flex-end;gap:3px;height:48px}
+.bar{flex:1;border-radius:3px 3px 0 0;transition:height .5s ease;min-height:4px}
+
+/* EDITABLE */
+[contenteditable]{outline:none;cursor:text}
+[contenteditable]:focus{background:rgba(255,255,255,.03);border-radius:4px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;width:460px;max-width:90vw;animation:fadeIn .2s ease}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:20px}
+.modal-field{margin-bottom:14px}
+.modal-field label{display:block;font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:6px}
+.modal-field input,.modal-field select{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--text);font-family:var(--syne);font-size:13px;outline:none}
+.modal-field input:focus,.modal-field select:focus{border-color:rgba(0,212,255,.4)}
+.modal-field select option{background:var(--surface2)}
+.modal-btns{display:flex;gap:10px;margin-top:20px}
+.btn-primary{flex:1;padding:10px;background:var(--accent);border:none;border-radius:8px;color:#000;font-family:var(--syne);font-size:13px;font-weight:600;cursor:pointer}
+.btn-ghost{padding:10px 16px;background:none;border:1px solid var(--border2);border-radius:8px;color:var(--muted2);font-family:var(--syne);font-size:13px;cursor:pointer}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%)}
+  .main{margin-left:0}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .grid-2,.grid-3,.grid-65{grid-template-columns:1fr}
+  .pipeline{grid-template-columns:1fr 1fr}
+  .agent-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo-area">
+    <div class="logo-rasc">R<span>A</span>SC</div>
+    <div class="logo-sub">Command Center v1.0</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Visão Geral</div>
+    <a class="nav-item active" onclick="showSection('overview',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/></svg>
+      Overview
+    </a>
+
+    <div class="nav-section">Operação</div>
+    <a class="nav-item" onclick="showSection('trafego',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 12l4-5 3 3 2-4 3 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Tráfego Pago
+    </a>
+    <a class="nav-item" onclick="showSection('agentes',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Agentes IA
+      <span class="nav-badge">5</span>
+    </a>
+    <a class="nav-item" onclick="showSection('pipeline',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="3" height="10" rx="1" fill="currentColor" opacity=".5"/><rect x="6" y="5" width="3" height="8" rx="1" fill="currentColor" opacity=".7"/><rect x="11" y="1" width="3" height="12" rx="1" fill="currentColor"/></svg>
+      Pipeline
+    </a>
+    <a class="nav-item" onclick="showSection('conteudo',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 6h6M5 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Conteúdo
+    </a>
+
+    <div class="nav-section">Financeiro</div>
+    <a class="nav-item" onclick="showSection('financeiro',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v6M6 7h3a1 1 0 010 2H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Financeiro
+    </a>
+    <a class="nav-item" onclick="showSection('assinaturas',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 7h12" stroke="currentColor" stroke-width="1.5"/><path d="M5 3V2M11 3V2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Assinaturas
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="user-avatar">A</div>
+      <div>
+        <div class="user-name">Alexsander</div>
+        <div class="user-role">CEO · RASC</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title" id="page-title">Overview</div>
+      <div class="page-date" id="page-date"></div>
+    </div>
+    <div class="topbar-right">
+      <div class="pulse-live"><div class="pulse-dot"></div>ao vivo</div>
+      <button class="add-btn" onclick="openModal()">+ Novo</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══ OVERVIEW ═══ -->
+    <div class="section active" id="section-overview">
+      <div class="kpi-grid">
+        <div class="kpi-card c-cyan">
+          <div class="kpi-label">Receita Mensal</div>
+          <div class="kpi-value" style="color:var(--accent)" id="kpi-receita">R$ 0</div>
+          <div class="kpi-sub"><span class="kpi-delta delta-up" id="kpi-receita-delta">+0%</span> vs mês anterior</div>
+        </div>
+        <div class="kpi-card c-purple">
+          <div class="kpi-label">Clientes Ativos</div>
+          <div class="kpi-value" style="color:var(--accent2)" id="kpi-clientes">0</div>
+          <div class="kpi-sub"><span class="kpi-delta delta-up">tráfego + IA</span></div>
+        </div>
+        <div class="kpi-card c-green">
+          <div class="kpi-label">Agentes IA</div>
+          <div class="kpi-value" style="color:var(--green)">5</div>
+          <div class="kpi-sub"><span class="kpi-delta delta-up">em desenvolvimento</span></div>
+        </div>
+        <div class="kpi-card c-amber">
+          <div class="kpi-label">Gasto Assinaturas</div>
+          <div class="kpi-value" style="color:var(--amber)" id="kpi-subs">R$ 0</div>
+          <div class="kpi-sub"><span class="kpi-delta delta-down" id="kpi-subs-pct">0%</span> da receita</div>
+        </div>
+      </div>
+
+      <div class="grid-65">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Clientes — Status Geral</div>
+            <span class="card-action" onclick="showSection('trafego',document.querySelector('[onclick*=trafego]'))">ver todos →</span>
+          </div>
+          <div class="card-body" style="padding:0">
+            <table class="table" id="overview-clients-table">
+              <thead><tr><th>Cliente</th><th>Serviço</th><th>Mensalidade</th><th>Status</th></tr></thead>
+              <tbody id="overview-clients-body">
+                <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;font-family:var(--mono);font-size:12px">Adicione clientes para visualizar</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Atividade Recente</div></div>
+          <div class="card-body">
+            <div class="timeline" id="activity-feed">
+              <div class="tl-item">
+                <div class="tl-dot" style="background:var(--accent)"></div>
+                <div class="tl-content">
+                  <div class="tl-title">Meta Intelligence no ar</div>
+                  <div class="tl-meta">hoje · Sistema de análise de campanhas</div>
+                </div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-dot" style="background:var(--green)"></div>
+                <div class="tl-content">
+                  <div class="tl-title">N8N configurado com WhatsApp</div>
+                  <div class="tl-meta">hoje · Relatório diário automatizado</div>
+                </div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-dot" style="background:var(--accent2)"></div>
+                <div class="tl-content">
+                  <div class="tl-title">RASC Dashboard criado</div>
+                  <div class="tl-meta">hoje · Command center da operação</div>
+                </div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-dot" style="background:var(--amber)"></div>
+                <div class="tl-content">
+                  <div class="tl-title">Evolution API no Railway</div>
+                  <div class="tl-meta">hoje · WhatsApp conectado</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Pipeline de Vendas</div></div>
+          <div class="card-body">
+            <div class="progress-wrap">
+              <div class="progress-label"><span>Prospecção</span><span id="pipe-prosp-count">0 leads</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="background:var(--muted);width:0%" id="pipe-prosp-bar"></div></div>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-label"><span>Proposta Enviada</span><span id="pipe-prop-count">0 leads</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="background:var(--amber);width:0%" id="pipe-prop-bar"></div></div>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-label"><span>Negociação</span><span id="pipe-neg-count">0 leads</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="background:var(--accent);width:0%" id="pipe-neg-bar"></div></div>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-label"><span>Fechado</span><span id="pipe-close-count">0 leads</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="background:var(--green);width:0%" id="pipe-close-bar"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Agentes IA — Vertical Saúde</div></div>
+          <div class="card-body">
+            <div class="timeline">
+              <div class="tl-item"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-content"><div class="tl-title">Clínica Médica</div><div class="tl-meta">em desenvolvimento</div></div></div>
+              <div class="tl-item"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-content"><div class="tl-title">Odontológica</div><div class="tl-meta">em desenvolvimento</div></div></div>
+              <div class="tl-item"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-content"><div class="tl-title">Fisioterapia</div><div class="tl-meta">em desenvolvimento</div></div></div>
+              <div class="tl-item"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-content"><div class="tl-title">Psicologia</div><div class="tl-meta">em desenvolvimento</div></div></div>
+              <div class="tl-item"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-content"><div class="tl-title">Nutrição</div><div class="tl-meta">em desenvolvimento</div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Ferramentas Ativas</div></div>
+          <div class="card-body" id="tools-overview">
+            <div class="sub-item">
+              <div class="sub-left"><div class="sub-icon" style="background:rgba(0,212,255,.1);color:var(--accent)">MI</div><div><div class="sub-name">Meta Intelligence</div><div class="sub-cycle">GitHub Pages · gratuito</div></div></div>
+              <div><div class="sub-price" style="color:var(--green)">R$ 0</div><div class="sub-next status-pill pill-green">ativo</div></div>
+            </div>
+            <div class="sub-item">
+              <div class="sub-left"><div class="sub-icon" style="background:rgba(123,97,255,.1);color:var(--accent2)">N8</div><div><div class="sub-name">N8N Cloud</div><div class="sub-cycle">mensal · gratuito</div></div></div>
+              <div><div class="sub-price" style="color:var(--green)">R$ 0</div><div class="sub-next status-pill pill-green">ativo</div></div>
+            </div>
+            <div class="sub-item">
+              <div class="sub-left"><div class="sub-icon" style="background:rgba(0,229,160,.1);color:var(--green)">EV</div><div><div class="sub-name">Evolution API</div><div class="sub-cycle">Railway · gratuito</div></div></div>
+              <div><div class="sub-price" style="color:var(--green)">R$ 0</div><div class="sub-next status-pill pill-green">ativo</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TRÁFEGO ═══ -->
+    <div class="section" id="section-trafego">
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi-card c-cyan">
+          <div class="kpi-label">Clientes Ativos</div>
+          <div class="kpi-value" style="color:var(--accent)" id="t-clientes">0</div>
+          <div class="kpi-sub">tráfego pago</div>
+        </div>
+        <div class="kpi-card c-green">
+          <div class="kpi-label">Receita Tráfego</div>
+          <div class="kpi-value" style="color:var(--green)" id="t-receita">R$ 0</div>
+          <div class="kpi-sub">mensal recorrente</div>
+        </div>
+        <div class="kpi-card c-amber">
+          <div class="kpi-label">Campanhas Ativas</div>
+          <div class="kpi-value" style="color:var(--amber)" id="t-camps">0</div>
+          <div class="kpi-sub">meta ads</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Clientes de Tráfego</div>
+          <span class="card-action" onclick="openModal('trafego')">+ Adicionar cliente</span>
+        </div>
+        <div style="padding:0">
+          <table class="table">
+            <thead><tr><th>Cliente</th><th>Segmento</th><th>Orçamento/dia</th><th>Mensalidade</th><th>Plataforma</th><th>Status</th><th>Ação</th></tr></thead>
+            <tbody id="trafego-table-body">
+              <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px;font-family:var(--mono);font-size:12px">Nenhum cliente cadastrado · clique em "+ Adicionar cliente"</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ AGENTES ═══ -->
+    <div class="section" id="section-agentes">
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi-card c-purple">
+          <div class="kpi-label">Agentes em Dev</div>
+          <div class="kpi-value" style="color:var(--accent2)">5</div>
+          <div class="kpi-sub">vertical saúde</div>
+        </div>
+        <div class="kpi-card c-green">
+          <div class="kpi-label">Clientes Alvo</div>
+          <div class="kpi-value" style="color:var(--green)">∞</div>
+          <div class="kpi-sub">clínicas no Brasil</div>
+        </div>
+        <div class="kpi-card c-cyan">
+          <div class="kpi-label">Stack Principal</div>
+          <div class="kpi-value" style="color:var(--accent);font-size:16px">Claude + N8N</div>
+          <div class="kpi-sub">+ Evolution API</div>
+        </div>
+      </div>
+      <div class="agent-grid" style="margin-bottom:16px">
+        <div class="agent-card" onclick="openAgentModal('clinica')">
+          <div class="agent-icon" style="background:rgba(255,77,106,.1)">🏥</div>
+          <div class="agent-name">Agente Médico</div>
+          <div class="agent-specialty">Clínica Médica · Geral</div>
+          <div style="margin-bottom:10px"><span class="status-pill pill-amber">em desenvolvimento</span></div>
+          <div class="agent-stats">
+            <div class="agent-stat">Agendamentos <strong>–</strong></div>
+            <div class="agent-stat">Triagem <strong>–</strong></div>
+          </div>
+        </div>
+        <div class="agent-card" onclick="openAgentModal('odonto')">
+          <div class="agent-icon" style="background:rgba(0,212,255,.1)">🦷</div>
+          <div class="agent-name">Agente Odonto</div>
+          <div class="agent-specialty">Clínica Odontológica</div>
+          <div style="margin-bottom:10px"><span class="status-pill pill-amber">em desenvolvimento</span></div>
+          <div class="agent-stats">
+            <div class="agent-stat">Consultas <strong>–</strong></div>
+            <div class="agent-stat">Follow-up <strong>–</strong></div>
+          </div>
+        </div>
+        <div class="agent-card" onclick="openAgentModal('fisio')">
+          <div class="agent-icon" style="background:rgba(0,229,160,.1)">🏃</div>
+          <div class="agent-name">Agente Fisio</div>
+          <div class="agent-specialty">Fisioterapia</div>
+          <div style="margin-bottom:10px"><span class="status-pill pill-amber">em desenvolvimento</span></div>
+          <div class="agent-stats">
+            <div class="agent-stat">Sessões <strong>–</strong></div>
+            <div class="agent-stat">Evolução <strong>–</strong></div>
+          </div>
+        </div>
+        <div class="agent-card" onclick="openAgentModal('psico')">
+          <div class="agent-icon" style="background:rgba(123,97,255,.1)">🧠</div>
+          <div class="agent-name">Agente Psico</div>
+          <div class="agent-specialty">Psicologia</div>
+          <div style="margin-bottom:10px"><span class="status-pill pill-amber">em desenvolvimento</span></div>
+          <div class="agent-stats">
+            <div class="agent-stat">Sessões <strong>–</strong></div>
+            <div class="agent-stat">Acolhimento <strong>–</strong></div>
+          </div>
+        </div>
+        <div class="agent-card" onclick="openAgentModal('nutri')">
+          <div class="agent-icon" style="background:rgba(255,179,64,.1)">🥗</div>
+          <div class="agent-name">Agente Nutri</div>
+          <div class="agent-specialty">Nutrição</div>
+          <div style="margin-bottom:10px"><span class="status-pill pill-amber">em desenvolvimento</span></div>
+          <div class="agent-stats">
+            <div class="agent-stat">Consultas <strong>–</strong></div>
+            <div class="agent-stat">Planos <strong>–</strong></div>
+          </div>
+        </div>
+        <div class="agent-card" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center" onclick="openModal('agente')">
+          <div style="font-size:28px;margin-bottom:8px;opacity:.3">+</div>
+          <div style="font-size:13px;color:var(--muted)">Novo agente</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Stack de Desenvolvimento</div></div>
+        <div class="card-body">
+          <div class="grid-3" style="margin:0">
+            <div style="background:var(--surface2);border-radius:10px;padding:14px">
+              <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:8px">IA PRINCIPAL</div>
+              <div style="font-size:14px;font-weight:600">Claude Sonnet 4.6</div>
+              <div style="font-size:11px;color:var(--muted2);margin-top:4px">Anthropic · conversacional</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:10px;padding:14px">
+              <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:8px">AUTOMAÇÃO</div>
+              <div style="font-size:14px;font-weight:600">N8N Cloud</div>
+              <div style="font-size:11px;color:var(--muted2);margin-top:4px">workflows · webhooks</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:10px;padding:14px">
+              <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:8px">CANAL</div>
+              <div style="font-size:14px;font-weight:600">Evolution API</div>
+              <div style="font-size:11px;color:var(--muted2);margin-top:4px">WhatsApp · Railway</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PIPELINE ═══ -->
+    <div class="section" id="section-pipeline">
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+        <div class="kpi-card c-cyan"><div class="kpi-label">Total no Funil</div><div class="kpi-value" style="color:var(--accent)" id="pipe-total">0</div><div class="kpi-sub">leads ativos</div></div>
+        <div class="kpi-card c-green"><div class="kpi-label">Valor Potencial</div><div class="kpi-value" style="color:var(--green)" id="pipe-valor">R$ 0</div><div class="kpi-sub">em negociação</div></div>
+        <div class="kpi-card c-amber"><div class="kpi-label">Taxa de Conversão</div><div class="kpi-value" style="color:var(--amber)" id="pipe-conv">0%</div><div class="kpi-sub">meta: 20%</div></div>
+        <div class="kpi-card c-purple"><div class="kpi-label">Ticket Médio</div><div class="kpi-value" style="color:var(--accent2)" id="pipe-ticket">R$ 0</div><div class="kpi-sub">por cliente</div></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+        <button class="add-btn" onclick="openModal('lead')">+ Adicionar lead</button>
+      </div>
+      <div class="pipeline" id="pipeline-board">
+        <div class="pipe-col">
+          <div class="pipe-col-title">Prospecção <span class="pipe-count" id="cnt-prosp">0</span></div>
+          <div id="col-prosp"></div>
+        </div>
+        <div class="pipe-col">
+          <div class="pipe-col-title">Proposta <span class="pipe-count" id="cnt-prop">0</span></div>
+          <div id="col-prop"></div>
+        </div>
+        <div class="pipe-col">
+          <div class="pipe-col-title">Negociação <span class="pipe-count" id="cnt-neg">0</span></div>
+          <div id="col-neg"></div>
+        </div>
+        <div class="pipe-col">
+          <div class="pipe-col-title">Fechado <span class="pipe-count" id="cnt-close">0</span></div>
+          <div id="col-close"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CONTEÚDO ═══ -->
+    <div class="section" id="section-conteudo">
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi-card c-pink"><div class="kpi-label">Posts este mês</div><div class="kpi-value" style="color:var(--pink)" id="c-posts">0</div><div class="kpi-sub">planejados</div></div>
+        <div class="kpi-card c-cyan"><div class="kpi-label">Clientes c/ Conteúdo</div><div class="kpi-value" style="color:var(--accent)" id="c-clientes">0</div><div class="kpi-sub">com calendário ativo</div></div>
+        <div class="kpi-card c-amber"><div class="kpi-label">Pendentes</div><div class="kpi-value" style="color:var(--amber)" id="c-pend">0</div><div class="kpi-sub">aprovação/criação</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Calendário Editorial — Semana Atual</div>
+          <span class="card-action" onclick="openModal('post')">+ Novo post</span>
+        </div>
+        <div class="card-body">
+          <div class="cal-grid" id="cal-grid"></div>
+          <div style="display:flex;gap:12px;margin-top:8px">
+            <span style="font-size:11px;color:var(--pink)">● Reels</span>
+            <span style="font-size:11px;color:var(--accent)">● Feed</span>
+            <span style="font-size:11px;color:var(--amber)">● Stories</span>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-header"><div class="card-title">Posts Planejados</div></div>
+        <div style="padding:0">
+          <table class="table">
+            <thead><tr><th>Data</th><th>Cliente</th><th>Formato</th><th>Tema</th><th>Status</th></tr></thead>
+            <tbody id="posts-table-body">
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px;font-family:var(--mono);font-size:12px">Nenhum post planejado · clique em "+ Novo post"</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ FINANCEIRO ═══ -->
+    <div class="section" id="section-financeiro">
+      <div class="kpi-grid">
+        <div class="kpi-card c-green"><div class="kpi-label">Receita Total</div><div class="kpi-value" style="color:var(--green)" id="fin-receita">R$ 0</div><div class="kpi-sub">mês atual</div></div>
+        <div class="kpi-card c-red"><div class="kpi-label">Custos Fixos</div><div class="kpi-value" style="color:var(--red)" id="fin-custos">R$ 0</div><div class="kpi-sub">assinaturas + ferramentas</div></div>
+        <div class="kpi-card c-cyan"><div class="kpi-label">Lucro Líquido</div><div class="kpi-value" style="color:var(--accent)" id="fin-lucro">R$ 0</div><div class="kpi-sub">estimado</div></div>
+        <div class="kpi-card c-amber"><div class="kpi-label">Margem</div><div class="kpi-value" style="color:var(--amber)" id="fin-margem">0%</div><div class="kpi-sub">meta: 70%</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Receita por Cliente</div></div>
+          <div class="card-body" id="fin-receita-list"><div style="color:var(--muted);font-size:12px;font-family:var(--mono)">Adicione clientes para ver a receita</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Metas Mensais</div></div>
+          <div class="card-body">
+            <div class="progress-wrap">
+              <div class="progress-label"><span>Meta de Receita</span><span id="meta-receita-label">R$ 0 / R$ 5.000</span></div>
+              <div class="progress-bar"><div class="progress-fill" id="meta-receita-bar" style="background:var(--green);width:0%"></div></div>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-label"><span>Novos Clientes</span><span id="meta-clientes-label">0 / 3</span></div>
+              <div class="progress-bar"><div class="progress-fill" id="meta-clientes-bar" style="background:var(--accent);width:0%"></div></div>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-label"><span>Agentes IA Prontos</span><span>0 / 5</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="background:var(--accent2);width:0%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ASSINATURAS ═══ -->
+    <div class="section" id="section-assinaturas">
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi-card c-red"><div class="kpi-label">Total Mensal</div><div class="kpi-value" style="color:var(--red)" id="sub-total">R$ 0</div><div class="kpi-sub">todas as ferramentas</div></div>
+        <div class="kpi-card c-amber"><div class="kpi-label">Total Anual</div><div class="kpi-value" style="color:var(--amber)" id="sub-anual">R$ 0</div><div class="kpi-sub">projeção</div></div>
+        <div class="kpi-card c-cyan"><div class="kpi-label">Ferramentas Ativas</div><div class="kpi-value" style="color:var(--accent)" id="sub-count">3</div><div class="kpi-sub">em uso</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Gerenciar Assinaturas e Ferramentas</div>
+          <span class="card-action" onclick="openModal('sub')">+ Adicionar</span>
+        </div>
+        <div class="card-body" style="padding:0 20px" id="subs-list">
+          <div class="sub-item">
+            <div class="sub-left"><div class="sub-icon" style="background:rgba(0,212,255,.1);color:var(--accent)">MI</div><div><div class="sub-name">Meta Intelligence (GitHub)</div><div class="sub-cycle">gratuito · hospedagem web</div></div></div>
+            <div style="text-align:right"><div class="sub-price" style="color:var(--green)">R$ 0</div><div class="sub-next" style="color:var(--muted)">sem custo</div></div>
+          </div>
+          <div class="sub-item">
+            <div class="sub-left"><div class="sub-icon" style="background:rgba(123,97,255,.1);color:var(--accent2)">N8</div><div><div class="sub-name">N8N Cloud</div><div class="sub-cycle">gratuito · automação</div></div></div>
+            <div style="text-align:right"><div class="sub-price" style="color:var(--green)">R$ 0</div><div class="sub-next" style="color:var(--muted)">sem custo</div></div>
+          </div>
+          <div class="sub-item">
+            <div class="sub-left"><div class="sub-icon" style="background:rgba(0,229,160,.1);color:var(--green)">EV</div><div><div class="sub-name">Evolution API (Railway)</div><div class="sub-cycle">gratuito · WhatsApp</div></div></div>
+            <div style="text-align:right"><div class="sub-price" style="color:var(--green)">R$ 0</div><div class="sub-next" style="color:var(--muted)">sem custo</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-content">
+    <div class="modal-title" id="modal-title">Novo Item</div>
+    <div id="modal-fields"></div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" id="modal-save" onclick="saveModal()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ───────────────────────────────────────────────
+const STATE_KEY = 'rasc_dashboard_v1';
+let state = {
+  clientes: [],
+  leads: [],
+  posts: [],
+  subs: [
+    {name:'Meta Intelligence',cycle:'gratuito',price:0,icon:'MI',color:'var(--accent)'},
+    {name:'N8N Cloud',cycle:'gratuito',price:0,icon:'N8',color:'var(--accent2)'},
+    {name:'Evolution API',cycle:'gratuito',price:0,icon:'EV',color:'var(--green)'},
+  ]
+};
+
+function loadState() {
+  try {
+    const s = localStorage.getItem(STATE_KEY);
+    if (s) state = {...state, ...JSON.parse(s)};
+  } catch(e){}
+}
+function saveState() {
+  localStorage.setItem(STATE_KEY, JSON.stringify(state));
+}
+
+// ── NAVIGATION ──────────────────────────────────────────
+function showSection(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  const titles = {overview:'Overview',trafego:'Tráfego Pago',agentes:'Agentes IA',pipeline:'Pipeline de Vendas',conteudo:'Produção de Conteúdo',financeiro:'Financeiro',assinaturas:'Assinaturas & Ferramentas'};
+  document.getElementById('page-title').textContent = titles[id]||id;
+  renderAll();
+}
+
+// ── MODAL ───────────────────────────────────────────────
+let currentModal = '';
+function openModal(type='trafego') {
+  currentModal = type;
+  const overlay = document.getElementById('modal-overlay');
+  const title = document.getElementById('modal-title');
+  const fields = document.getElementById('modal-fields');
+  overlay.classList.add('open');
+
+  if(type==='trafego') {
+    title.textContent = 'Novo Cliente — Tráfego';
+    fields.innerHTML = `
+      <div class="modal-field"><label>Nome do Cliente</label><input id="mf-name" placeholder="Ex: César Imports DF"></div>
+      <div class="modal-field"><label>Segmento</label><input id="mf-seg" placeholder="Ex: Eletrônicos, Saúde, Varejo..."></div>
+      <div class="modal-field"><label>Mensalidade (R$)</label><input id="mf-price" type="number" placeholder="1500"></div>
+      <div class="modal-field"><label>Orçamento de Mídia/dia (R$)</label><input id="mf-budget" type="number" placeholder="50"></div>
+      <div class="modal-field"><label>Plataforma</label><select id="mf-plat"><option>Meta Ads</option><option>Google Ads</option><option>Meta + Google</option><option>TikTok Ads</option></select></div>
+      <div class="modal-field"><label>Status</label><select id="mf-status"><option>Ativo</option><option>Pausado</option><option>Onboarding</option></select></div>`;
+  } else if(type==='lead') {
+    title.textContent = 'Novo Lead — Pipeline';
+    fields.innerHTML = `
+      <div class="modal-field"><label>Nome / Empresa</label><input id="mf-name" placeholder="Ex: Clínica Dr. Silva"></div>
+      <div class="modal-field"><label>Segmento</label><input id="mf-seg" placeholder="Ex: Clínica Médica, E-commerce..."></div>
+      <div class="modal-field"><label>Valor Estimado (R$)</label><input id="mf-price" type="number" placeholder="2000"></div>
+      <div class="modal-field"><label>Etapa</label><select id="mf-stage"><option value="prosp">Prospecção</option><option value="prop">Proposta Enviada</option><option value="neg">Negociação</option><option value="close">Fechado</option></select></div>
+      <div class="modal-field"><label>Serviço de Interesse</label><select id="mf-service"><option>Tráfego Pago</option><option>Agente IA</option><option>Tráfego + IA</option><option>Conteúdo</option></select></div>`;
+  } else if(type==='post') {
+    title.textContent = 'Novo Post';
+    const today = new Date().toISOString().split('T')[0];
+    fields.innerHTML = `
+      <div class="modal-field"><label>Data</label><input id="mf-date" type="date" value="${today}"></div>
+      <div class="modal-field"><label>Cliente</label><input id="mf-name" placeholder="Ex: César Imports DF"></div>
+      <div class="modal-field"><label>Formato</label><select id="mf-format"><option>Reels</option><option>Feed</option><option>Stories</option><option>Carrossel</option></select></div>
+      <div class="modal-field"><label>Tema / Descrição</label><input id="mf-tema" placeholder="Ex: Promoção iPhone 15 Pro"></div>
+      <div class="modal-field"><label>Status</label><select id="mf-status"><option>Planejado</option><option>Em criação</option><option>Aguardando aprovação</option><option>Publicado</option></select></div>`;
+  } else if(type==='sub') {
+    title.textContent = 'Nova Ferramenta / Assinatura';
+    fields.innerHTML = `
+      <div class="modal-field"><label>Nome da Ferramenta</label><input id="mf-name" placeholder="Ex: Canva Pro"></div>
+      <div class="modal-field"><label>Sigla (2-3 letras)</label><input id="mf-icon" placeholder="CA" maxlength="3"></div>
+      <div class="modal-field"><label>Custo Mensal (R$)</label><input id="mf-price" type="number" placeholder="0"></div>
+      <div class="modal-field"><label>Ciclo de Cobrança</label><select id="mf-cycle"><option>mensal</option><option>anual</option><option>gratuito</option></select></div>
+      <div class="modal-field"><label>Categoria</label><select id="mf-cat"><option>Design</option><option>IA</option><option>Automação</option><option>Ads</option><option>Comunicação</option><option>Gestão</option><option>Outro</option></select></div>`;
+  } else if(type==='agente') {
+    title.textContent = 'Novo Agente IA';
+    fields.innerHTML = `
+      <div class="modal-field"><label>Nome do Agente</label><input id="mf-name" placeholder="Ex: Agente Dermatologia"></div>
+      <div class="modal-field"><label>Especialidade</label><input id="mf-seg" placeholder="Ex: Clínica Dermatológica"></div>
+      <div class="modal-field"><label>Status</label><select id="mf-status"><option>Em desenvolvimento</option><option>Teste</option><option>Ativo</option></select></div>`;
+  }
+}
+
+function closeModal(e) {
+  if(e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function saveModal() {
+  const name = document.getElementById('mf-name')?.value.trim();
+  if(!name) return;
+
+  if(currentModal==='trafego') {
+    state.clientes.push({
+      name, seg: document.getElementById('mf-seg').value,
+      price: parseFloat(document.getElementById('mf-price').value)||0,
+      budget: parseFloat(document.getElementById('mf-budget').value)||0,
+      plat: document.getElementById('mf-plat').value,
+      status: document.getElementById('mf-status').value,
+      type:'trafego'
+    });
+  } else if(currentModal==='lead') {
+    state.leads.push({
+      name, seg: document.getElementById('mf-seg').value,
+      price: parseFloat(document.getElementById('mf-price').value)||0,
+      stage: document.getElementById('mf-stage').value,
+      service: document.getElementById('mf-service').value
+    });
+  } else if(currentModal==='post') {
+    state.posts.push({
+      date: document.getElementById('mf-date').value,
+      name, format: document.getElementById('mf-format').value,
+      tema: document.getElementById('mf-tema').value,
+      status: document.getElementById('mf-status').value
+    });
+  } else if(currentModal==='sub') {
+    state.subs.push({
+      name, icon: document.getElementById('mf-icon').value||'??',
+      price: parseFloat(document.getElementById('mf-price').value)||0,
+      cycle: document.getElementById('mf-cycle').value,
+      cat: document.getElementById('mf-cat').value,
+      color:'var(--accent2)'
+    });
+  }
+
+  saveState();
+  document.getElementById('modal-overlay').classList.remove('open');
+  renderAll();
+}
+
+function openAgentModal(type) {}
+
+// ── RENDER ───────────────────────────────────────────────
+function renderAll() {
+  renderKPIs();
+  renderTrafegoTable();
+  renderPipeline();
+  renderPosts();
+  renderSubs();
+  renderFinanceiro();
+  renderOverviewClients();
+  renderCalendar();
+}
+
+function fmt(n){return 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+function renderKPIs() {
+  const tClientes = state.clientes.filter(c=>c.status==='Ativo');
+  const receita = state.clientes.reduce((s,c)=>s+c.price,0);
+  const subTotal = state.subs.reduce((s,c)=>s+c.price,0);
+  const leads = state.leads.length;
+
+  document.getElementById('kpi-receita').textContent = fmt(receita);
+  document.getElementById('kpi-clientes').textContent = tClientes.length;
+  document.getElementById('kpi-subs').textContent = fmt(subTotal);
+  const subPct = receita > 0 ? Math.round(subTotal/receita*100) : 0;
+  document.getElementById('kpi-subs-pct').textContent = subPct+'%';
+
+  document.getElementById('t-clientes').textContent = tClientes.length;
+  document.getElementById('t-receita').textContent = fmt(receita);
+  document.getElementById('t-camps').textContent = tClientes.length;
+  document.getElementById('c-clientes').textContent = state.clientes.length;
+  document.getElementById('c-posts').textContent = state.posts.length;
+  document.getElementById('c-pend').textContent = state.posts.filter(p=>p.status==='Planejado'||p.status==='Em criação').length;
+}
+
+function renderTrafegoTable() {
+  const tbody = document.getElementById('trafego-table-body');
+  if(!state.clientes.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px;font-family:var(--mono);font-size:12px">Nenhum cliente · clique em "+ Adicionar cliente"</td></tr>';return;}
+  tbody.innerHTML = state.clientes.map((c,i)=>`
+    <tr>
+      <td style="font-weight:500">${c.name}</td>
+      <td style="color:var(--muted2)">${c.seg||'–'}</td>
+      <td style="font-family:var(--mono)">${fmt(c.budget||0)}/dia</td>
+      <td style="font-family:var(--mono);color:var(--green)">${fmt(c.price)}</td>
+      <td><span class="status-pill pill-blue">${c.plat||'Meta Ads'}</span></td>
+      <td><span class="status-pill ${c.status==='Ativo'?'pill-green':c.status==='Pausado'?'pill-amber':'pill-purple'}">${c.status}</span></td>
+      <td><span style="color:var(--red);cursor:pointer;font-size:11px;font-family:var(--mono)" onclick="removeCliente(${i})">remover</span></td>
+    </tr>`).join('');
+}
+
+function removeCliente(i){state.clientes.splice(i,1);saveState();renderAll();}
+
+function renderOverviewClients() {
+  const tbody = document.getElementById('overview-clients-body');
+  if(!state.clientes.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;font-family:var(--mono);font-size:12px">Adicione clientes para visualizar</td></tr>';return;}
+  tbody.innerHTML = state.clientes.map(c=>`
+    <tr>
+      <td style="font-weight:500">${c.name}</td>
+      <td><span class="status-pill pill-blue">${c.type==='trafego'?'Tráfego':'IA'}</span></td>
+      <td style="font-family:var(--mono);color:var(--green)">${fmt(c.price)}</td>
+      <td><span class="status-pill ${c.status==='Ativo'?'pill-green':c.status==='Pausado'?'pill-amber':'pill-purple'}">${c.status}</span></td>
+    </tr>`).join('');
+}
+
+function renderPipeline() {
+  const stages = {prosp:[],prop:[],neg:[],close:[]};
+  state.leads.forEach(l=>{ if(stages[l.stage]) stages[l.stage].push(l); });
+  const stageNames = {prosp:'col-prosp',prop:'col-prop',neg:'col-neg',close:'col-close'};
+  const cntNames = {prosp:'cnt-prosp',prop:'cnt-prop',neg:'cnt-neg',close:'cnt-close'};
+
+  Object.entries(stages).forEach(([key,leads])=>{
+    document.getElementById(cntNames[key]).textContent = leads.length;
+    document.getElementById(stageNames[key]).innerHTML = leads.map((l,i)=>`
+      <div class="pipe-card">
+        <div class="pipe-card-name">${l.name}</div>
+        <div class="pipe-card-type">${l.service||''} · ${l.seg||''}</div>
+        <div class="pipe-card-value">${fmt(l.price)}</div>
+      </div>`).join('');
+  });
+
+  const total = state.leads.length;
+  const valor = state.leads.reduce((s,l)=>s+l.price,0);
+  const closed = stages.close.length;
+  document.getElementById('pipe-total').textContent = total;
+  document.getElementById('pipe-valor').textContent = fmt(valor);
+  document.getElementById('pipe-conv').textContent = total>0?Math.round(closed/total*100)+'%':'0%';
+  document.getElementById('pipe-ticket').textContent = closed>0?fmt(stages.close.reduce((s,l)=>s+l.price,0)/closed):'R$ 0';
+
+  const pipeStages = ['prosp','prop','neg','close'];
+  const pipeIds = ['pipe-prosp','pipe-prop','pipe-neg','pipe-close'];
+  const pipeColors = ['var(--muted)','var(--amber)','var(--accent)','var(--green)'];
+  pipeStages.forEach((s,i)=>{
+    const count = stages[s].length;
+    const pct = total>0?Math.round(count/total*100):0;
+    const el = document.getElementById(pipeIds[i]+'-count');
+    const bar = document.getElementById(pipeIds[i]+'-bar');
+    if(el) el.textContent = count+' leads';
+    if(bar) bar.style.width = pct+'%';
+  });
+}
+
+function renderPosts() {
+  const tbody = document.getElementById('posts-table-body');
+  if(!state.posts.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px;font-family:var(--mono);font-size:12px">Nenhum post · clique em "+ Novo post"</td></tr>';return;}
+  const fmt2 = d=>{ const [y,m,dd]=d.split('-'); return `${dd}/${m}`; };
+  tbody.innerHTML = state.posts.map(p=>`
+    <tr>
+      <td style="font-family:var(--mono)">${fmt2(p.date)}</td>
+      <td style="font-weight:500">${p.name}</td>
+      <td><span class="status-pill ${p.format==='Reels'?'pill-green':p.format==='Feed'?'pill-blue':'pill-amber'}">${p.format}</span></td>
+      <td style="color:var(--muted2)">${p.tema||'–'}</td>
+      <td><span class="status-pill ${p.status==='Publicado'?'pill-green':p.status==='Planejado'?'pill-amber':'pill-blue'}">${p.status}</span></td>
+    </tr>`).join('');
+}
+
+function renderCalendar() {
+  const cal = document.getElementById('cal-grid');
+  const days = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate()-today.getDay());
+
+  cal.innerHTML = Array.from({length:7},(_,i)=>{
+    const d = new Date(startOfWeek);
+    d.setDate(startOfWeek.getDate()+i);
+    const ds = d.toISOString().split('T')[0];
+    const dayPosts = state.posts.filter(p=>p.date===ds);
+    const isToday = ds===today.toISOString().split('T')[0];
+    return `<div class="cal-day" style="${isToday?'border:1px solid rgba(0,212,255,.3)':''}">
+      <div class="cal-day-label" style="${isToday?'color:var(--accent)':''}">${days[i]} ${d.getDate()}</div>
+      ${dayPosts.map(p=>`<div class="cal-post ${p.format==='Reels'?'reels':p.format==='Feed'?'feed':'stories'}">${p.tema||p.format}</div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderSubs() {
+  const list = document.getElementById('subs-list');
+  const total = state.subs.reduce((s,c)=>s+c.price,0);
+  document.getElementById('sub-total').textContent = fmt(total);
+  document.getElementById('sub-anual').textContent = fmt(total*12);
+  document.getElementById('sub-count').textContent = state.subs.length;
+  document.getElementById('kpi-subs').textContent = fmt(total);
+
+  list.innerHTML = state.subs.map(s=>`
+    <div class="sub-item">
+      <div class="sub-left">
+        <div class="sub-icon" style="background:rgba(123,97,255,.1);color:${s.color||'var(--accent2)'}">${s.icon}</div>
+        <div><div class="sub-name">${s.name}</div><div class="sub-cycle">${s.cycle||'mensal'} · ${s.cat||'ferramenta'}</div></div>
+      </div>
+      <div style="text-align:right">
+        <div class="sub-price" style="color:${s.price===0?'var(--green)':'var(--text)'}">${s.price===0?'Gratuito':fmt(s.price)}</div>
+        <div class="sub-next" style="color:var(--muted)">${s.cycle==='anual'?'anual':'por mês'}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderFinanceiro() {
+  const receita = state.clientes.reduce((s,c)=>s+c.price,0);
+  const custos = state.subs.reduce((s,c)=>s+c.price,0);
+  const lucro = receita-custos;
+  const margem = receita>0?Math.round(lucro/receita*100):0;
+
+  document.getElementById('fin-receita').textContent = fmt(receita);
+  document.getElementById('fin-custos').textContent = fmt(custos);
+  document.getElementById('fin-lucro').textContent = fmt(lucro);
+  document.getElementById('fin-margem').textContent = margem+'%';
+
+  const metaBar = document.getElementById('meta-receita-bar');
+  const metaLabel = document.getElementById('meta-receita-label');
+  if(metaBar){metaBar.style.width = Math.min(receita/5000*100,100)+'%';}
+  if(metaLabel){metaLabel.textContent = fmt(receita)+' / R$ 5.000';}
+
+  const cliBar = document.getElementById('meta-clientes-bar');
+  const cliLabel = document.getElementById('meta-clientes-label');
+  if(cliBar){cliBar.style.width = Math.min(state.clientes.length/3*100,100)+'%';}
+  if(cliLabel){cliLabel.textContent = state.clientes.length+' / 3';}
+
+  const recList = document.getElementById('fin-receita-list');
+  if(!state.clientes.length){recList.innerHTML='<div style="color:var(--muted);font-size:12px;font-family:var(--mono)">Adicione clientes para ver a receita</div>';return;}
+  recList.innerHTML = state.clientes.map(c=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:13px">${c.name}</div>
+      <div style="font-family:var(--mono);color:var(--green)">${fmt(c.price)}</div>
+    </div>`).join('');
+}
+
+// ── INIT ─────────────────────────────────────────────────
+function init() {
+  loadState();
+  const now = new Date();
+  document.getElementById('page-date').textContent = now.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  renderAll();
+}
+
+init();
+</script>
+</body>
+</html>
