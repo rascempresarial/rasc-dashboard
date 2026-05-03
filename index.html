@@ -4,203 +4,213 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RASC — Command Center</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
-  --bg: #07080a;
-  --surface: #0d0f13;
-  --surface2: #13161c;
-  --surface3: #181c24;
-  --border: rgba(255,255,255,0.06);
-  --border2: rgba(255,255,255,0.1);
-  --text: #e2e4ea;
-  --muted: #5a6070;
-  --muted2: #8892a4;
-  --accent: #00d4ff;
-  --accent2: #7b61ff;
-  --green: #00e5a0;
-  --red: #ff4d6a;
-  --amber: #ffb340;
-  --pink: #ff6eb4;
-  --syne: 'Syne', sans-serif;
-  --mono: 'JetBrains Mono', monospace;
-  --lora: 'Lora', serif;
+  --bg:#07080a;--surface:#0d0f13;--surface2:#13161c;--surface3:#181c24;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+  --text:#e2e4ea;--muted:#5a6070;--muted2:#8892a4;
+  --accent:#00d4ff;--accent2:#7b61ff;--green:#00e5a0;--red:#ff4d6a;--amber:#ffb340;--pink:#ff6eb4;
+  --syne:'Syne',sans-serif;--mono:'JetBrains Mono',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--syne);font-size:14px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
-/* NOISE TEXTURE */
-body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+/* LOGIN */
+.login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+.login-screen.hidden{display:none}
+.login-card{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:44px;width:400px;max-width:92vw}
+.login-logo{font-size:36px;font-weight:800;letter-spacing:-.03em;margin-bottom:4px}
+.login-logo span{color:var(--accent)}
+.login-tagline{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:32px;letter-spacing:.08em}
+.login-label{font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.1em;margin-bottom:6px;display:block;text-transform:uppercase}
+.login-input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;color:var(--text);font-family:var(--syne);font-size:14px;outline:none;margin-bottom:14px;transition:border .15s}
+.login-input:focus{border-color:rgba(0,212,255,.5)}
+.login-btn{width:100%;padding:13px;background:var(--accent);border:none;border-radius:10px;color:#000;font-family:var(--syne);font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:4px}
+.login-btn:hover{background:#00bde8;transform:translateY(-1px)}
+.login-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.login-error{font-size:12px;color:var(--red);font-family:var(--mono);margin-top:10px;text-align:center;min-height:18px}
+.login-footer{font-size:11px;color:var(--muted);margin-top:24px;text-align:center;font-family:var(--mono)}
+.login-toggle{font-size:12px;color:var(--accent);cursor:pointer;text-align:center;margin-top:14px;font-family:var(--mono)}
 
-/* GLOW ORBS */
+/* ORBS */
 .orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
 .orb1{width:600px;height:600px;background:rgba(0,212,255,.04);top:-200px;right:-100px}
 .orb2{width:400px;height:400px;background:rgba(123,97,255,.05);bottom:-100px;left:-100px}
 
 /* SIDEBAR */
-.sidebar{position:fixed;left:0;top:0;width:220px;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:transform .3s}
-.logo-area{padding:28px 24px 24px;border-bottom:1px solid var(--border)}
-.logo-rasc{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.sidebar{position:fixed;left:0;top:0;width:220px;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100}
+.logo-area{padding:26px 22px 22px;border-bottom:1px solid var(--border)}
+.logo-rasc{font-size:26px;font-weight:800;letter-spacing:-.02em}
 .logo-rasc span{color:var(--accent)}
-.logo-sub{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px;letter-spacing:.12em}
-.nav{flex:1;padding:20px 12px;display:flex;flex-direction:column;gap:2px}
-.nav-section{font-size:9px;font-weight:600;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;padding:12px 12px 6px;font-family:var(--mono)}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted2);transition:all .15s;border:1px solid transparent;text-decoration:none}
+.logo-sub{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:3px;letter-spacing:.1em}
+.nav{flex:1;padding:16px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav-section{font-size:9px;font-weight:600;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;padding:10px 10px 5px;font-family:var(--mono)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted2);transition:all .15s;border:1px solid transparent}
 .nav-item:hover{background:var(--surface2);color:var(--text)}
 .nav-item.active{background:rgba(0,212,255,.08);color:var(--accent);border-color:rgba(0,212,255,.15)}
-.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-icon{width:15px;height:15px;flex-shrink:0;opacity:.7}
 .nav-item.active .nav-icon{opacity:1}
 .nav-badge{margin-left:auto;font-size:10px;background:var(--red);color:#fff;padding:1px 6px;border-radius:10px;font-family:var(--mono)}
-.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+.sidebar-footer{padding:14px;border-top:1px solid var(--border)}
 .user-card{display:flex;align-items:center;gap:10px}
-.user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
 .user-name{font-size:13px;font-weight:600}
 .user-role{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.logout-btn{font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:var(--mono);padding:0;margin-top:2px;transition:color .15s}
+.logout-btn:hover{color:var(--red)}
 
 /* MAIN */
 .main{margin-left:220px;min-height:100vh;position:relative;z-index:1}
-.topbar{padding:20px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(7,8,10,.8);backdrop-filter:blur(12px);position:sticky;top:0;z-index:50}
-.page-title{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.topbar{padding:18px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(7,8,10,.85);backdrop-filter:blur(12px);position:sticky;top:0;z-index:50}
+.page-title{font-size:19px;font-weight:700;letter-spacing:-.02em}
 .page-date{font-size:11px;color:var(--muted);font-family:var(--mono)}
-.topbar-right{display:flex;align-items:center;gap:12px}
-.pulse-live{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-family:var(--mono)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.pulse-live{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--green);font-family:var(--mono)}
 .pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
-.add-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--accent);border:none;border-radius:8px;color:#000;font-family:var(--syne);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.add-btn{display:flex;align-items:center;gap:5px;padding:7px 14px;background:var(--accent);border:none;border-radius:8px;color:#000;font-family:var(--syne);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
 .add-btn:hover{background:#00bde8;transform:translateY(-1px)}
+.icon-btn{padding:7px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--muted2);font-family:var(--syne);font-size:12px;cursor:pointer;transition:all .15s}
+.icon-btn:hover{color:var(--text)}
 
 /* CONTENT */
-.content{padding:28px 32px}
+.content{padding:24px 28px}
 .section{display:none}
 .section.active{display:block;animation:fadeIn .3s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-/* KPI GRID */
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
-.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;position:relative;overflow:hidden;transition:border-color .2s}
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;position:relative;overflow:hidden;transition:border-color .2s}
 .kpi-card:hover{border-color:var(--border2)}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
 .kpi-card.c-cyan::before{background:var(--accent)}
 .kpi-card.c-purple::before{background:var(--accent2)}
 .kpi-card.c-green::before{background:var(--green)}
 .kpi-card.c-amber::before{background:var(--amber)}
-.kpi-card.c-pink::before{background:var(--pink)}
 .kpi-card.c-red::before{background:var(--red)}
-.kpi-label{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-family:var(--mono);margin-bottom:10px}
-.kpi-value{font-size:28px;font-weight:700;letter-spacing:-.03em;margin-bottom:4px;font-family:var(--mono)}
-.kpi-sub{font-size:11px;color:var(--muted2);display:flex;align-items:center;gap:4px}
-.kpi-delta{font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:4px}
-.delta-up{background:rgba(0,229,160,.12);color:var(--green)}
-.delta-down{background:rgba(255,77,106,.12);color:var(--red)}
-
-/* GRID 2 COL */
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
-.grid-65{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:16px}
+.kpi-card.c-pink::before{background:var(--pink)}
+.kpi-label{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-family:var(--mono);margin-bottom:8px}
+.kpi-value{font-size:26px;font-weight:700;letter-spacing:-.03em;font-family:var(--mono);margin-bottom:3px}
+.kpi-sub{font-size:11px;color:var(--muted2)}
 
 /* CARDS */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
-.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.card-title{font-size:13px;font-weight:600;letter-spacing:.02em}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:600}
 .card-action{font-size:11px;color:var(--accent);cursor:pointer;font-family:var(--mono)}
-.card-body{padding:20px}
+.card-body{padding:18px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-65{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}
 
 /* TABLE */
 .table{width:100%;border-collapse:collapse}
-.table th{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;text-align:left;font-family:var(--mono);border-bottom:1px solid var(--border)}
-.table td{padding:12px 12px;font-size:13px;border-bottom:1px solid var(--border)}
+.table th{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;text-align:left;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.table td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border)}
 .table tr:last-child td{border-bottom:none}
-.table tr:hover td{background:var(--surface2)}
-.status-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;font-family:var(--mono)}
+.table tr:hover td{background:rgba(255,255,255,.02)}
+
+/* PILLS */
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;font-family:var(--mono)}
 .pill-green{background:rgba(0,229,160,.12);color:var(--green)}
 .pill-amber{background:rgba(255,179,64,.12);color:var(--amber)}
 .pill-red{background:rgba(255,77,106,.12);color:var(--red)}
 .pill-blue{background:rgba(0,212,255,.12);color:var(--accent)}
 .pill-purple{background:rgba(123,97,255,.12);color:var(--accent2)}
+.pill-pink{background:rgba(255,110,180,.12);color:var(--pink)}
 
-/* PROGRESS BAR */
-.progress-wrap{margin-bottom:14px}
-.progress-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px}
+/* PROGRESS */
+.progress-wrap{margin-bottom:12px}
+.progress-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
 .progress-label span:last-child{font-family:var(--mono);color:var(--muted2)}
-.progress-bar{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.progress-bar{height:3px;background:var(--surface3);border-radius:2px;overflow:hidden}
 .progress-fill{height:100%;border-radius:2px;transition:width .8s ease}
-
-/* TIMELINE */
-.timeline{display:flex;flex-direction:column;gap:12px}
-.tl-item{display:flex;gap:12px;align-items:flex-start}
-.tl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
-.tl-content{flex:1}
-.tl-title{font-size:13px;font-weight:500}
-.tl-meta{font-size:11px;color:var(--muted);font-family:var(--mono)}
-
-/* AGENT CARDS */
-.agent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.agent-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;transition:all .2s;cursor:pointer}
-.agent-card:hover{border-color:var(--border2);transform:translateY(-2px)}
-.agent-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px}
-.agent-name{font-size:14px;font-weight:600;margin-bottom:4px}
-.agent-specialty{font-size:11px;color:var(--muted2);font-family:var(--mono);margin-bottom:12px}
-.agent-stats{display:flex;gap:12px}
-.agent-stat{font-size:11px;color:var(--muted)}
-.agent-stat strong{color:var(--text);font-family:var(--mono)}
-
-/* SUBSCRIPTION */
-.sub-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
-.sub-item:last-child{border-bottom:none}
-.sub-left{display:flex;align-items:center;gap:12px}
-.sub-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-family:var(--mono);font-weight:700;font-size:12px}
-.sub-name{font-size:13px;font-weight:500}
-.sub-cycle{font-size:10px;color:var(--muted);font-family:var(--mono)}
-.sub-price{font-size:14px;font-weight:600;font-family:var(--mono);text-align:right}
-.sub-next{font-size:10px;color:var(--muted);font-family:var(--mono)}
 
 /* PIPELINE */
 .pipeline{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .pipe-col{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
-.pipe-col-title{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-family:var(--mono);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.pipe-col-title{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;font-family:var(--mono);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
 .pipe-count{background:var(--surface2);padding:1px 7px;border-radius:10px;color:var(--text)}
-.pipe-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
+.pipe-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
 .pipe-card:hover{border-color:var(--border2)}
-.pipe-card-name{font-size:13px;font-weight:500;margin-bottom:4px}
+.pipe-card-name{font-size:13px;font-weight:500;margin-bottom:3px}
 .pipe-card-type{font-size:10px;color:var(--muted);font-family:var(--mono)}
-.pipe-card-value{font-size:12px;font-family:var(--mono);color:var(--green);margin-top:8px}
+.pipe-card-value{font-size:12px;font-family:var(--mono);color:var(--green);margin-top:7px}
 
-/* CONTENT CALENDAR */
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px}
-.cal-day{background:var(--surface2);border-radius:8px;padding:8px;min-height:70px}
-.cal-day-label{font-size:9px;color:var(--muted);font-family:var(--mono);margin-bottom:6px}
+/* CALENDAR */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:14px}
+.cal-day{background:var(--surface2);border-radius:8px;padding:7px;min-height:66px}
+.cal-day-label{font-size:9px;color:var(--muted);font-family:var(--mono);margin-bottom:5px}
 .cal-post{font-size:9px;padding:3px 5px;border-radius:4px;margin-bottom:3px;line-height:1.3}
 .cal-post.reels{background:rgba(255,110,180,.15);color:var(--pink)}
 .cal-post.feed{background:rgba(0,212,255,.15);color:var(--accent)}
 .cal-post.stories{background:rgba(255,179,64,.15);color:var(--amber)}
 
-/* MINI CHART */
-.mini-chart{display:flex;align-items:flex-end;gap:3px;height:48px}
-.bar{flex:1;border-radius:3px 3px 0 0;transition:height .5s ease;min-height:4px}
+/* SUB ITEMS */
+.sub-item{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)}
+.sub-item:last-child{border-bottom:none}
+.sub-left{display:flex;align-items:center;gap:10px}
+.sub-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:var(--mono)}
+.sub-name{font-size:13px;font-weight:500}
+.sub-cycle{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.sub-price{font-size:14px;font-weight:600;font-family:var(--mono);text-align:right}
 
-/* EDITABLE */
-[contenteditable]{outline:none;cursor:text}
-[contenteditable]:focus{background:rgba(255,255,255,.03);border-radius:4px}
+/* TIMELINE */
+.timeline{display:flex;flex-direction:column;gap:11px}
+.tl-item{display:flex;gap:11px;align-items:flex-start}
+.tl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.tl-title{font-size:13px;font-weight:500}
+.tl-meta{font-size:11px;color:var(--muted);font-family:var(--mono)}
+
+/* AGENT CARDS */
+.agent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.agent-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;transition:all .2s;cursor:pointer}
+.agent-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.agent-icon{font-size:22px;margin-bottom:10px}
+.agent-name{font-size:14px;font-weight:600;margin-bottom:3px}
+.agent-spec{font-size:11px;color:var(--muted2);font-family:var(--mono);margin-bottom:10px}
 
 /* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
 .modal-overlay.open{display:flex}
-.modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;width:460px;max-width:90vw;animation:fadeIn .2s ease}
-.modal-title{font-size:18px;font-weight:700;margin-bottom:20px}
-.modal-field{margin-bottom:14px}
-.modal-field label{display:block;font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:6px}
-.modal-field input,.modal-field select{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--text);font-family:var(--syne);font-size:13px;outline:none}
-.modal-field input:focus,.modal-field select:focus{border-color:rgba(0,212,255,.4)}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:26px;width:480px;max-width:100%;max-height:90vh;overflow-y:auto;animation:fadeIn .2s ease}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:18px}
+.modal-field{margin-bottom:12px}
+.modal-field label{display:block;font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+.modal-field input,.modal-field select,.modal-field textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--text);font-family:var(--syne);font-size:13px;outline:none;transition:border .15s}
+.modal-field input:focus,.modal-field select:focus,.modal-field textarea:focus{border-color:rgba(0,212,255,.4)}
 .modal-field select option{background:var(--surface2)}
-.modal-btns{display:flex;gap:10px;margin-top:20px}
-.btn-primary{flex:1;padding:10px;background:var(--accent);border:none;border-radius:8px;color:#000;font-family:var(--syne);font-size:13px;font-weight:600;cursor:pointer}
+.modal-field textarea{resize:vertical;min-height:70px}
+.modal-btns{display:flex;gap:10px;margin-top:18px}
+.btn-primary{flex:1;padding:10px;background:var(--accent);border:none;border-radius:8px;color:#000;font-family:var(--syne);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary:hover{background:#00bde8}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed}
 .btn-ghost{padding:10px 16px;background:none;border:1px solid var(--border2);border-radius:8px;color:var(--muted2);font-family:var(--syne);font-size:13px;cursor:pointer}
 
-/* SCROLLBAR */
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+/* SERVICE TOGGLE */
+.service-toggle{display:flex;gap:8px;margin-bottom:16px}
+.service-opt{flex:1;padding:12px;border:1px solid var(--border2);border-radius:10px;cursor:pointer;text-align:center;transition:all .2s}
+.service-opt.selected{border-color:var(--accent);background:rgba(0,212,255,.08)}
+.service-opt-icon{font-size:20px;margin-bottom:4px}
+.service-opt-label{font-size:12px;font-weight:600}
+.service-opt-sub{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.fields-trafego,.fields-ia{transition:all .2s}
+
+/* MI EMBED */
+.mi-frame{width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;background:var(--surface)}
+.mi-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.mi-open-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);border-radius:8px;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s}
+.mi-open-btn:hover{background:rgba(0,212,255,.2)}
+
+/* LOADING */
+.loading-row{text-align:center;padding:30px;color:var(--muted);font-family:var(--mono);font-size:12px}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 @media(max-width:900px){
   .sidebar{transform:translateX(-100%)}
@@ -217,54 +227,86 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 <div class="orb orb1"></div>
 <div class="orb orb2"></div>
 
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">R<span>A</span>SC</div>
+    <div class="login-tagline">Command Center · Acesso Restrito</div>
+    <div id="login-form">
+      <label class="login-label">Email</label>
+      <input class="login-input" id="login-email" type="email" placeholder="seu@email.com" autocomplete="email">
+      <label class="login-label">Senha</label>
+      <input class="login-input" id="login-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="login-btn" id="login-btn" onclick="doLogin()">Entrar</button>
+      <div class="login-error" id="login-error"></div>
+      <div class="login-toggle" onclick="toggleRegister()">Primeiro acesso? Criar conta →</div>
+    </div>
+    <div id="register-form" style="display:none">
+      <label class="login-label">Nome</label>
+      <input class="login-input" id="reg-nome" type="text" placeholder="Alexsander">
+      <label class="login-label">Email</label>
+      <input class="login-input" id="reg-email" type="email" placeholder="seu@email.com">
+      <label class="login-label">Senha</label>
+      <input class="login-input" id="reg-pass" type="password" placeholder="mínimo 6 caracteres" onkeydown="if(event.key==='Enter')doRegister()">
+      <button class="login-btn" id="reg-btn" onclick="doRegister()">Criar conta</button>
+      <div class="login-error" id="reg-error"></div>
+      <div class="login-toggle" onclick="toggleRegister()">← Voltar ao login</div>
+    </div>
+    <div class="login-footer">RASC Gestão de Tráfego & Estratégia Digital</div>
+  </div>
+</div>
+
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="logo-area">
     <div class="logo-rasc">R<span>A</span>SC</div>
-    <div class="logo-sub">Command Center v1.0</div>
+    <div class="logo-sub">Command Center</div>
   </div>
   <nav class="nav">
     <div class="nav-section">Visão Geral</div>
-    <a class="nav-item active" onclick="showSection('overview',this)">
+    <div class="nav-item active" onclick="showSection('overview',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/></svg>
       Overview
-    </a>
-
+    </div>
     <div class="nav-section">Operação</div>
-    <a class="nav-item" onclick="showSection('trafego',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 12l4-5 3 3 2-4 3 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Tráfego Pago
-    </a>
-    <a class="nav-item" onclick="showSection('agentes',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <div class="nav-item" onclick="showSection('clientes',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M1 13c0-2.5 2.2-4 5-4s5 1.5 5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 7c1.5 0 3 .8 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="4.5" r="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
+      Clientes
+    </div>
+    <div class="nav-item" onclick="showSection('agentes',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="6" width="12" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 6V4a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="10" r="1.5" fill="currentColor" opacity=".7"/></svg>
       Agentes IA
       <span class="nav-badge">5</span>
-    </a>
-    <a class="nav-item" onclick="showSection('pipeline',this)">
+    </div>
+    <div class="nav-item" onclick="showSection('pipeline',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="3" height="10" rx="1" fill="currentColor" opacity=".5"/><rect x="6" y="5" width="3" height="8" rx="1" fill="currentColor" opacity=".7"/><rect x="11" y="1" width="3" height="12" rx="1" fill="currentColor"/></svg>
       Pipeline
-    </a>
-    <a class="nav-item" onclick="showSection('conteudo',this)">
+    </div>
+    <div class="nav-item" onclick="showSection('conteudo',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 6h6M5 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
       Conteúdo
-    </a>
-
+    </div>
+    <div class="nav-section">Ferramentas</div>
+    <div class="nav-item" onclick="showSection('metaintel',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 12l4-5 3 3 2-4 3 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Meta Intelligence
+    </div>
     <div class="nav-section">Financeiro</div>
-    <a class="nav-item" onclick="showSection('financeiro',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v6M6 7h3a1 1 0 010 2H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <div class="nav-item" onclick="showSection('financeiro',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v6M6.5 7h2.5a1 1 0 010 2H6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
       Financeiro
-    </a>
-    <a class="nav-item" onclick="showSection('assinaturas',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 7h12" stroke="currentColor" stroke-width="1.5"/><path d="M5 3V2M11 3V2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </div>
+    <div class="nav-item" onclick="showSection('assinaturas',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 7h12" stroke="currentColor" stroke-width="1.5"/></svg>
       Assinaturas
-    </a>
+    </div>
   </nav>
   <div class="sidebar-footer">
     <div class="user-card">
-      <div class="user-avatar">A</div>
+      <div class="user-avatar" id="sidebar-avatar">A</div>
       <div>
-        <div class="user-name">Alexsander</div>
-        <div class="user-role">CEO · RASC</div>
+        <div class="user-name" id="sidebar-name">Carregando...</div>
+        <button class="logout-btn" onclick="doLogout()">sair da conta</button>
       </div>
     </div>
   </div>
@@ -279,401 +321,160 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
     <div class="topbar-right">
       <div class="pulse-live"><div class="pulse-dot"></div>ao vivo</div>
-      <button class="add-btn" onclick="openModal()">+ Novo</button>
+      <button class="icon-btn" onclick="loadAll()">↻ Atualizar</button>
+      <button class="add-btn" onclick="openModal('cliente')">+ Novo cliente</button>
     </div>
   </div>
 
   <div class="content">
 
-    <!-- ═══ OVERVIEW ═══ -->
+    <!-- OVERVIEW -->
     <div class="section active" id="section-overview">
       <div class="kpi-grid">
-        <div class="kpi-card c-cyan">
-          <div class="kpi-label">Receita Mensal</div>
-          <div class="kpi-value" style="color:var(--accent)" id="kpi-receita">R$ 0</div>
-          <div class="kpi-sub"><span class="kpi-delta delta-up" id="kpi-receita-delta">+0%</span> vs mês anterior</div>
-        </div>
-        <div class="kpi-card c-purple">
-          <div class="kpi-label">Clientes Ativos</div>
-          <div class="kpi-value" style="color:var(--accent2)" id="kpi-clientes">0</div>
-          <div class="kpi-sub"><span class="kpi-delta delta-up">tráfego + IA</span></div>
-        </div>
-        <div class="kpi-card c-green">
-          <div class="kpi-label">Agentes IA</div>
-          <div class="kpi-value" style="color:var(--green)">5</div>
-          <div class="kpi-sub"><span class="kpi-delta delta-up">em desenvolvimento</span></div>
-        </div>
-        <div class="kpi-card c-amber">
-          <div class="kpi-label">Gasto Assinaturas</div>
-          <div class="kpi-value" style="color:var(--amber)" id="kpi-subs">R$ 0</div>
-          <div class="kpi-sub"><span class="kpi-delta delta-down" id="kpi-subs-pct">0%</span> da receita</div>
-        </div>
+        <div class="kpi-card c-cyan"><div class="kpi-label">Receita Mensal</div><div class="kpi-value" style="color:var(--accent)" id="ov-receita">R$ 0</div><div class="kpi-sub">clientes ativos</div></div>
+        <div class="kpi-card c-purple"><div class="kpi-label">Clientes Ativos</div><div class="kpi-value" style="color:var(--accent2)" id="ov-clientes">0</div><div class="kpi-sub">tráfego + IA</div></div>
+        <div class="kpi-card c-green"><div class="kpi-label">Leads no Funil</div><div class="kpi-value" style="color:var(--green)" id="ov-leads">0</div><div class="kpi-sub">pipeline ativo</div></div>
+        <div class="kpi-card c-amber"><div class="kpi-label">Custo Ferramentas</div><div class="kpi-value" style="color:var(--amber)" id="ov-subs">R$ 0</div><div class="kpi-sub">mensal</div></div>
       </div>
-
       <div class="grid-65">
         <div class="card">
-          <div class="card-header">
-            <div class="card-title">Clientes — Status Geral</div>
-            <span class="card-action" onclick="showSection('trafego',document.querySelector('[onclick*=trafego]'))">ver todos →</span>
-          </div>
-          <div class="card-body" style="padding:0">
-            <table class="table" id="overview-clients-table">
-              <thead><tr><th>Cliente</th><th>Serviço</th><th>Mensalidade</th><th>Status</th></tr></thead>
-              <tbody id="overview-clients-body">
-                <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;font-family:var(--mono);font-size:12px">Adicione clientes para visualizar</td></tr>
-              </tbody>
-            </table>
-          </div>
+          <div class="card-header"><div class="card-title">Clientes Recentes</div><span class="card-action" onclick="showSection('clientes',document.querySelectorAll('.nav-item')[2])">ver todos →</span></div>
+          <table class="table"><thead><tr><th>Cliente</th><th>Serviço</th><th>Mensalidade</th><th>Status</th></tr></thead>
+          <tbody id="ov-clients-body"><tr><td colspan="4" class="loading-row"><span class="spin"></span>carregando...</td></tr></tbody></table>
         </div>
         <div class="card">
-          <div class="card-header"><div class="card-title">Atividade Recente</div></div>
+          <div class="card-header"><div class="card-title">Resumo da Operação</div></div>
           <div class="card-body">
-            <div class="timeline" id="activity-feed">
-              <div class="tl-item">
-                <div class="tl-dot" style="background:var(--accent)"></div>
-                <div class="tl-content">
-                  <div class="tl-title">Meta Intelligence no ar</div>
-                  <div class="tl-meta">hoje · Sistema de análise de campanhas</div>
-                </div>
+            <div class="progress-wrap"><div class="progress-label"><span>Meta Receita</span><span id="ov-meta-label">R$ 0 / R$ 5.000</span></div><div class="progress-bar"><div class="progress-fill" id="ov-meta-bar" style="background:var(--green);width:0%"></div></div></div>
+            <div class="progress-wrap"><div class="progress-label"><span>Novos Clientes</span><span id="ov-cli-label">0 / 5</span></div><div class="progress-bar"><div class="progress-fill" id="ov-cli-bar" style="background:var(--accent);width:0%"></div></div></div>
+            <div class="progress-wrap"><div class="progress-label"><span>Agentes IA Prontos</span><span>0 / 5</span></div><div class="progress-bar"><div class="progress-fill" style="background:var(--accent2);width:0%"></div></div></div>
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+              <div class="timeline" id="ov-activity">
+                <div class="tl-item"><div class="tl-dot" style="background:var(--accent)"></div><div><div class="tl-title">RASC Dashboard v2 no ar</div><div class="tl-meta">hoje · Supabase integrado</div></div></div>
+                <div class="tl-item"><div class="tl-dot" style="background:var(--green)"></div><div><div class="tl-title">Meta Intelligence funcionando</div><div class="tl-meta">hoje · WhatsApp automatizado</div></div></div>
               </div>
-              <div class="tl-item">
-                <div class="tl-dot" style="background:var(--green)"></div>
-                <div class="tl-content">
-                  <div class="tl-title">N8N configurado com WhatsApp</div>
-                  <div class="tl-meta">hoje · Relatório diário automatizado</div>
-                </div>
-              </div>
-              <div class="tl-item">
-                <div class="tl-dot" style="background:var(--accent2)"></div>
-                <div class="tl-content">
-                  <div class="tl-title">RASC Dashboard criado</div>
-                  <div class="tl-meta">hoje · Command center da operação</div>
-                </div>
-              </div>
-              <div class="tl-item">
-                <div class="tl-dot" style="background:var(--amber)"></div>
-                <div class="tl-content">
-                  <div class="tl-title">Evolution API no Railway</div>
-                  <div class="tl-meta">hoje · WhatsApp conectado</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid-3">
-        <div class="card">
-          <div class="card-header"><div class="card-title">Pipeline de Vendas</div></div>
-          <div class="card-body">
-            <div class="progress-wrap">
-              <div class="progress-label"><span>Prospecção</span><span id="pipe-prosp-count">0 leads</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="background:var(--muted);width:0%" id="pipe-prosp-bar"></div></div>
-            </div>
-            <div class="progress-wrap">
-              <div class="progress-label"><span>Proposta Enviada</span><span id="pipe-prop-count">0 leads</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="background:var(--amber);width:0%" id="pipe-prop-bar"></div></div>
-            </div>
-            <div class="progress-wrap">
-              <div class="progress-label"><span>Negociação</span><span id="pipe-neg-count">0 leads</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="background:var(--accent);width:0%" id="pipe-neg-bar"></div></div>
-            </div>
-            <div class="progress-wrap">
-              <div class="progress-label"><span>Fechado</span><span id="pipe-close-count">0 leads</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="background:var(--green);width:0%" id="pipe-close-bar"></div></div>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">Agentes IA — Vertical Saúde</div></div>
-          <div class="card-body">
-            <div class="timeline">
-              <div class="tl-item"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-content"><div class="tl-title">Clínica Médica</div><div class="tl-meta">em desenvolvimento</div></div></div>
-              <div class="tl-item"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-content"><div class="tl-title">Odontológica</div><div class="tl-meta">em desenvolvimento</div></div></div>
-              <div class="tl-item"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-content"><div class="tl-title">Fisioterapia</div><div class="tl-meta">em desenvolvimento</div></div></div>
-              <div class="tl-item"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-content"><div class="tl-title">Psicologia</div><div class="tl-meta">em desenvolvimento</div></div></div>
-              <div class="tl-item"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-content"><div class="tl-title">Nutrição</div><div class="tl-meta">em desenvolvimento</div></div></div>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">Ferramentas Ativas</div></div>
-          <div class="card-body" id="tools-overview">
-            <div class="sub-item">
-              <div class="sub-left"><div class="sub-icon" style="background:rgba(0,212,255,.1);color:var(--accent)">MI</div><div><div class="sub-name">Meta Intelligence</div><div class="sub-cycle">GitHub Pages · gratuito</div></div></div>
-              <div><div class="sub-price" style="color:var(--green)">R$ 0</div><div class="sub-next status-pill pill-green">ativo</div></div>
-            </div>
-            <div class="sub-item">
-              <div class="sub-left"><div class="sub-icon" style="background:rgba(123,97,255,.1);color:var(--accent2)">N8</div><div><div class="sub-name">N8N Cloud</div><div class="sub-cycle">mensal · gratuito</div></div></div>
-              <div><div class="sub-price" style="color:var(--green)">R$ 0</div><div class="sub-next status-pill pill-green">ativo</div></div>
-            </div>
-            <div class="sub-item">
-              <div class="sub-left"><div class="sub-icon" style="background:rgba(0,229,160,.1);color:var(--green)">EV</div><div><div class="sub-name">Evolution API</div><div class="sub-cycle">Railway · gratuito</div></div></div>
-              <div><div class="sub-price" style="color:var(--green)">R$ 0</div><div class="sub-next status-pill pill-green">ativo</div></div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ═══ TRÁFEGO ═══ -->
-    <div class="section" id="section-trafego">
+    <!-- CLIENTES -->
+    <div class="section" id="section-clientes">
       <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="kpi-card c-cyan">
-          <div class="kpi-label">Clientes Ativos</div>
-          <div class="kpi-value" style="color:var(--accent)" id="t-clientes">0</div>
-          <div class="kpi-sub">tráfego pago</div>
-        </div>
-        <div class="kpi-card c-green">
-          <div class="kpi-label">Receita Tráfego</div>
-          <div class="kpi-value" style="color:var(--green)" id="t-receita">R$ 0</div>
-          <div class="kpi-sub">mensal recorrente</div>
-        </div>
-        <div class="kpi-card c-amber">
-          <div class="kpi-label">Campanhas Ativas</div>
-          <div class="kpi-value" style="color:var(--amber)" id="t-camps">0</div>
-          <div class="kpi-sub">meta ads</div>
-        </div>
+        <div class="kpi-card c-cyan"><div class="kpi-label">Total Clientes</div><div class="kpi-value" style="color:var(--accent)" id="cl-total">0</div><div class="kpi-sub">ativos e onboarding</div></div>
+        <div class="kpi-card c-green"><div class="kpi-label">Receita Mensal</div><div class="kpi-value" style="color:var(--green)" id="cl-receita">R$ 0</div><div class="kpi-sub">recorrente</div></div>
+        <div class="kpi-card c-purple"><div class="kpi-label">Ticket Médio</div><div class="kpi-value" style="color:var(--accent2)" id="cl-ticket">R$ 0</div><div class="kpi-sub">por cliente</div></div>
       </div>
       <div class="card">
-        <div class="card-header">
-          <div class="card-title">Clientes de Tráfego</div>
-          <span class="card-action" onclick="openModal('trafego')">+ Adicionar cliente</span>
-        </div>
-        <div style="padding:0">
-          <table class="table">
-            <thead><tr><th>Cliente</th><th>Segmento</th><th>Orçamento/dia</th><th>Mensalidade</th><th>Plataforma</th><th>Status</th><th>Ação</th></tr></thead>
-            <tbody id="trafego-table-body">
-              <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px;font-family:var(--mono);font-size:12px">Nenhum cliente cadastrado · clique em "+ Adicionar cliente"</td></tr>
-            </tbody>
-          </table>
-        </div>
+        <div class="card-header"><div class="card-title">Carteira de Clientes</div><span class="card-action" onclick="openModal('cliente')">+ Adicionar cliente</span></div>
+        <table class="table">
+          <thead><tr><th>Cliente</th><th>Serviço</th><th>Segmento</th><th>Mensalidade</th><th>Plataforma</th><th>Status</th><th></th></tr></thead>
+          <tbody id="clientes-body"><tr><td colspan="7" class="loading-row"><span class="spin"></span>carregando...</td></tr></tbody>
+        </table>
       </div>
     </div>
 
-    <!-- ═══ AGENTES ═══ -->
+    <!-- AGENTES -->
     <div class="section" id="section-agentes">
       <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="kpi-card c-purple">
-          <div class="kpi-label">Agentes em Dev</div>
-          <div class="kpi-value" style="color:var(--accent2)">5</div>
-          <div class="kpi-sub">vertical saúde</div>
-        </div>
-        <div class="kpi-card c-green">
-          <div class="kpi-label">Clientes Alvo</div>
-          <div class="kpi-value" style="color:var(--green)">∞</div>
-          <div class="kpi-sub">clínicas no Brasil</div>
-        </div>
-        <div class="kpi-card c-cyan">
-          <div class="kpi-label">Stack Principal</div>
-          <div class="kpi-value" style="color:var(--accent);font-size:16px">Claude + N8N</div>
-          <div class="kpi-sub">+ Evolution API</div>
-        </div>
+        <div class="kpi-card c-purple"><div class="kpi-label">Em Desenvolvimento</div><div class="kpi-value" style="color:var(--accent2)">5</div><div class="kpi-sub">vertical saúde</div></div>
+        <div class="kpi-card c-cyan"><div class="kpi-label">Stack Principal</div><div class="kpi-value" style="color:var(--accent);font-size:15px">Claude + N8N</div><div class="kpi-sub">Evolution API</div></div>
+        <div class="kpi-card c-green"><div class="kpi-label">Clientes IA</div><div class="kpi-value" style="color:var(--green)" id="ag-clientes">0</div><div class="kpi-sub">contratos agente ia</div></div>
       </div>
-      <div class="agent-grid" style="margin-bottom:16px">
-        <div class="agent-card" onclick="openAgentModal('clinica')">
-          <div class="agent-icon" style="background:rgba(255,77,106,.1)">🏥</div>
-          <div class="agent-name">Agente Médico</div>
-          <div class="agent-specialty">Clínica Médica · Geral</div>
-          <div style="margin-bottom:10px"><span class="status-pill pill-amber">em desenvolvimento</span></div>
-          <div class="agent-stats">
-            <div class="agent-stat">Agendamentos <strong>–</strong></div>
-            <div class="agent-stat">Triagem <strong>–</strong></div>
-          </div>
-        </div>
-        <div class="agent-card" onclick="openAgentModal('odonto')">
-          <div class="agent-icon" style="background:rgba(0,212,255,.1)">🦷</div>
-          <div class="agent-name">Agente Odonto</div>
-          <div class="agent-specialty">Clínica Odontológica</div>
-          <div style="margin-bottom:10px"><span class="status-pill pill-amber">em desenvolvimento</span></div>
-          <div class="agent-stats">
-            <div class="agent-stat">Consultas <strong>–</strong></div>
-            <div class="agent-stat">Follow-up <strong>–</strong></div>
-          </div>
-        </div>
-        <div class="agent-card" onclick="openAgentModal('fisio')">
-          <div class="agent-icon" style="background:rgba(0,229,160,.1)">🏃</div>
-          <div class="agent-name">Agente Fisio</div>
-          <div class="agent-specialty">Fisioterapia</div>
-          <div style="margin-bottom:10px"><span class="status-pill pill-amber">em desenvolvimento</span></div>
-          <div class="agent-stats">
-            <div class="agent-stat">Sessões <strong>–</strong></div>
-            <div class="agent-stat">Evolução <strong>–</strong></div>
-          </div>
-        </div>
-        <div class="agent-card" onclick="openAgentModal('psico')">
-          <div class="agent-icon" style="background:rgba(123,97,255,.1)">🧠</div>
-          <div class="agent-name">Agente Psico</div>
-          <div class="agent-specialty">Psicologia</div>
-          <div style="margin-bottom:10px"><span class="status-pill pill-amber">em desenvolvimento</span></div>
-          <div class="agent-stats">
-            <div class="agent-stat">Sessões <strong>–</strong></div>
-            <div class="agent-stat">Acolhimento <strong>–</strong></div>
-          </div>
-        </div>
-        <div class="agent-card" onclick="openAgentModal('nutri')">
-          <div class="agent-icon" style="background:rgba(255,179,64,.1)">🥗</div>
-          <div class="agent-name">Agente Nutri</div>
-          <div class="agent-specialty">Nutrição</div>
-          <div style="margin-bottom:10px"><span class="status-pill pill-amber">em desenvolvimento</span></div>
-          <div class="agent-stats">
-            <div class="agent-stat">Consultas <strong>–</strong></div>
-            <div class="agent-stat">Planos <strong>–</strong></div>
-          </div>
-        </div>
-        <div class="agent-card" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center" onclick="openModal('agente')">
-          <div style="font-size:28px;margin-bottom:8px;opacity:.3">+</div>
-          <div style="font-size:13px;color:var(--muted)">Novo agente</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">Stack de Desenvolvimento</div></div>
-        <div class="card-body">
-          <div class="grid-3" style="margin:0">
-            <div style="background:var(--surface2);border-radius:10px;padding:14px">
-              <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:8px">IA PRINCIPAL</div>
-              <div style="font-size:14px;font-weight:600">Claude Sonnet 4.6</div>
-              <div style="font-size:11px;color:var(--muted2);margin-top:4px">Anthropic · conversacional</div>
-            </div>
-            <div style="background:var(--surface2);border-radius:10px;padding:14px">
-              <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:8px">AUTOMAÇÃO</div>
-              <div style="font-size:14px;font-weight:600">N8N Cloud</div>
-              <div style="font-size:11px;color:var(--muted2);margin-top:4px">workflows · webhooks</div>
-            </div>
-            <div style="background:var(--surface2);border-radius:10px;padding:14px">
-              <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:8px">CANAL</div>
-              <div style="font-size:14px;font-weight:600">Evolution API</div>
-              <div style="font-size:11px;color:var(--muted2);margin-top:4px">WhatsApp · Railway</div>
-            </div>
-          </div>
+      <div class="agent-grid">
+        <div class="agent-card"><div class="agent-icon">🏥</div><div class="agent-name">Agente Médico</div><div class="agent-spec">Clínica Médica Geral</div><span class="pill pill-amber">em desenvolvimento</span></div>
+        <div class="agent-card"><div class="agent-icon">🦷</div><div class="agent-name">Agente Odonto</div><div class="agent-spec">Clínica Odontológica</div><span class="pill pill-amber">em desenvolvimento</span></div>
+        <div class="agent-card"><div class="agent-icon">🏃</div><div class="agent-name">Agente Fisio</div><div class="agent-spec">Fisioterapia</div><span class="pill pill-amber">em desenvolvimento</span></div>
+        <div class="agent-card"><div class="agent-icon">🧠</div><div class="agent-name">Agente Psico</div><div class="agent-spec">Psicologia</div><span class="pill pill-amber">em desenvolvimento</span></div>
+        <div class="agent-card"><div class="agent-icon">🥗</div><div class="agent-name">Agente Nutri</div><div class="agent-spec">Nutrição</div><span class="pill pill-amber">em desenvolvimento</span></div>
+        <div class="agent-card" style="border-style:dashed;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center" onclick="openModal('cliente')">
+          <div style="font-size:24px;opacity:.3;margin-bottom:6px">+</div>
+          <div style="font-size:12px;color:var(--muted)">Novo cliente IA</div>
         </div>
       </div>
     </div>
 
-    <!-- ═══ PIPELINE ═══ -->
+    <!-- PIPELINE -->
     <div class="section" id="section-pipeline">
-      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
-        <div class="kpi-card c-cyan"><div class="kpi-label">Total no Funil</div><div class="kpi-value" style="color:var(--accent)" id="pipe-total">0</div><div class="kpi-sub">leads ativos</div></div>
-        <div class="kpi-card c-green"><div class="kpi-label">Valor Potencial</div><div class="kpi-value" style="color:var(--green)" id="pipe-valor">R$ 0</div><div class="kpi-sub">em negociação</div></div>
-        <div class="kpi-card c-amber"><div class="kpi-label">Taxa de Conversão</div><div class="kpi-value" style="color:var(--amber)" id="pipe-conv">0%</div><div class="kpi-sub">meta: 20%</div></div>
-        <div class="kpi-card c-purple"><div class="kpi-label">Ticket Médio</div><div class="kpi-value" style="color:var(--accent2)" id="pipe-ticket">R$ 0</div><div class="kpi-sub">por cliente</div></div>
+      <div class="kpi-grid">
+        <div class="kpi-card c-cyan"><div class="kpi-label">Total no Funil</div><div class="kpi-value" style="color:var(--accent)" id="pi-total">0</div><div class="kpi-sub">leads ativos</div></div>
+        <div class="kpi-card c-green"><div class="kpi-label">Valor Potencial</div><div class="kpi-value" style="color:var(--green)" id="pi-valor">R$ 0</div><div class="kpi-sub">pipeline</div></div>
+        <div class="kpi-card c-amber"><div class="kpi-label">Fechados</div><div class="kpi-value" style="color:var(--amber)" id="pi-fechados">0</div><div class="kpi-sub">este mês</div></div>
+        <div class="kpi-card c-purple"><div class="kpi-label">Ticket Médio</div><div class="kpi-value" style="color:var(--accent2)" id="pi-ticket">R$ 0</div><div class="kpi-sub">leads fechados</div></div>
       </div>
       <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-        <button class="add-btn" onclick="openModal('lead')">+ Adicionar lead</button>
+        <button class="add-btn" onclick="openModal('lead')">+ Novo lead</button>
       </div>
-      <div class="pipeline" id="pipeline-board">
-        <div class="pipe-col">
-          <div class="pipe-col-title">Prospecção <span class="pipe-count" id="cnt-prosp">0</span></div>
-          <div id="col-prosp"></div>
-        </div>
-        <div class="pipe-col">
-          <div class="pipe-col-title">Proposta <span class="pipe-count" id="cnt-prop">0</span></div>
-          <div id="col-prop"></div>
-        </div>
-        <div class="pipe-col">
-          <div class="pipe-col-title">Negociação <span class="pipe-count" id="cnt-neg">0</span></div>
-          <div id="col-neg"></div>
-        </div>
-        <div class="pipe-col">
-          <div class="pipe-col-title">Fechado <span class="pipe-count" id="cnt-close">0</span></div>
-          <div id="col-close"></div>
-        </div>
+      <div class="pipeline">
+        <div class="pipe-col"><div class="pipe-col-title">Prospecção <span class="pipe-count" id="cnt-prosp">0</span></div><div id="col-prosp"></div></div>
+        <div class="pipe-col"><div class="pipe-col-title">Proposta <span class="pipe-count" id="cnt-prop">0</span></div><div id="col-prop"></div></div>
+        <div class="pipe-col"><div class="pipe-col-title">Negociação <span class="pipe-count" id="cnt-neg">0</span></div><div id="col-neg"></div></div>
+        <div class="pipe-col"><div class="pipe-col-title">Fechado <span class="pipe-count" id="cnt-close">0</span></div><div id="col-close"></div></div>
       </div>
     </div>
 
-    <!-- ═══ CONTEÚDO ═══ -->
+    <!-- CONTEUDO -->
     <div class="section" id="section-conteudo">
       <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="kpi-card c-pink"><div class="kpi-label">Posts este mês</div><div class="kpi-value" style="color:var(--pink)" id="c-posts">0</div><div class="kpi-sub">planejados</div></div>
-        <div class="kpi-card c-cyan"><div class="kpi-label">Clientes c/ Conteúdo</div><div class="kpi-value" style="color:var(--accent)" id="c-clientes">0</div><div class="kpi-sub">com calendário ativo</div></div>
-        <div class="kpi-card c-amber"><div class="kpi-label">Pendentes</div><div class="kpi-value" style="color:var(--amber)" id="c-pend">0</div><div class="kpi-sub">aprovação/criação</div></div>
+        <div class="kpi-card c-pink"><div class="kpi-label">Posts Planejados</div><div class="kpi-value" style="color:var(--pink)" id="co-total">0</div><div class="kpi-sub">este mês</div></div>
+        <div class="kpi-card c-amber"><div class="kpi-label">Pendentes</div><div class="kpi-value" style="color:var(--amber)" id="co-pend">0</div><div class="kpi-sub">criação / aprovação</div></div>
+        <div class="kpi-card c-green"><div class="kpi-label">Publicados</div><div class="kpi-value" style="color:var(--green)" id="co-pub">0</div><div class="kpi-sub">este mês</div></div>
       </div>
       <div class="card">
-        <div class="card-header">
-          <div class="card-title">Calendário Editorial — Semana Atual</div>
-          <span class="card-action" onclick="openModal('post')">+ Novo post</span>
-        </div>
-        <div class="card-body">
-          <div class="cal-grid" id="cal-grid"></div>
-          <div style="display:flex;gap:12px;margin-top:8px">
-            <span style="font-size:11px;color:var(--pink)">● Reels</span>
-            <span style="font-size:11px;color:var(--accent)">● Feed</span>
-            <span style="font-size:11px;color:var(--amber)">● Stories</span>
-          </div>
-        </div>
+        <div class="card-header"><div class="card-title">Calendário Editorial — Semana Atual</div><span class="card-action" onclick="openModal('post')">+ Novo post</span></div>
+        <div class="card-body"><div class="cal-grid" id="cal-grid"></div><div style="display:flex;gap:12px"><span style="font-size:11px;color:var(--pink)">● Reels</span><span style="font-size:11px;color:var(--accent)">● Feed</span><span style="font-size:11px;color:var(--amber)">● Stories</span></div></div>
       </div>
-      <div class="card" style="margin-top:16px">
+      <div class="card">
         <div class="card-header"><div class="card-title">Posts Planejados</div></div>
-        <div style="padding:0">
-          <table class="table">
-            <thead><tr><th>Data</th><th>Cliente</th><th>Formato</th><th>Tema</th><th>Status</th></tr></thead>
-            <tbody id="posts-table-body">
-              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px;font-family:var(--mono);font-size:12px">Nenhum post planejado · clique em "+ Novo post"</td></tr>
-            </tbody>
-          </table>
-        </div>
+        <table class="table"><thead><tr><th>Data</th><th>Cliente</th><th>Formato</th><th>Tema</th><th>Status</th><th></th></tr></thead>
+        <tbody id="posts-body"><tr><td colspan="6" class="loading-row"><span class="spin"></span>carregando...</td></tr></tbody></table>
       </div>
     </div>
 
-    <!-- ═══ FINANCEIRO ═══ -->
+    <!-- META INTELLIGENCE -->
+    <div class="section" id="section-metaintel">
+      <div class="mi-bar">
+        <div style="font-size:13px;color:var(--muted2);font-family:var(--mono)">Análise de campanhas Meta Ads com Claude AI</div>
+        <a class="mi-open-btn" href="https://rascempresarial.github.io/meta-intelligence" target="_blank">↗ Abrir em nova aba</a>
+      </div>
+      <iframe class="mi-frame" src="https://rascempresarial.github.io/meta-intelligence" title="Meta Intelligence" loading="lazy"></iframe>
+    </div>
+
+    <!-- FINANCEIRO -->
     <div class="section" id="section-financeiro">
       <div class="kpi-grid">
-        <div class="kpi-card c-green"><div class="kpi-label">Receita Total</div><div class="kpi-value" style="color:var(--green)" id="fin-receita">R$ 0</div><div class="kpi-sub">mês atual</div></div>
-        <div class="kpi-card c-red"><div class="kpi-label">Custos Fixos</div><div class="kpi-value" style="color:var(--red)" id="fin-custos">R$ 0</div><div class="kpi-sub">assinaturas + ferramentas</div></div>
+        <div class="kpi-card c-green"><div class="kpi-label">Receita</div><div class="kpi-value" style="color:var(--green)" id="fin-receita">R$ 0</div><div class="kpi-sub">mês atual</div></div>
+        <div class="kpi-card c-red"><div class="kpi-label">Custos Fixos</div><div class="kpi-value" style="color:var(--red)" id="fin-custos">R$ 0</div><div class="kpi-sub">ferramentas</div></div>
         <div class="kpi-card c-cyan"><div class="kpi-label">Lucro Líquido</div><div class="kpi-value" style="color:var(--accent)" id="fin-lucro">R$ 0</div><div class="kpi-sub">estimado</div></div>
         <div class="kpi-card c-amber"><div class="kpi-label">Margem</div><div class="kpi-value" style="color:var(--amber)" id="fin-margem">0%</div><div class="kpi-sub">meta: 70%</div></div>
       </div>
       <div class="grid-2">
         <div class="card">
           <div class="card-header"><div class="card-title">Receita por Cliente</div></div>
-          <div class="card-body" id="fin-receita-list"><div style="color:var(--muted);font-size:12px;font-family:var(--mono)">Adicione clientes para ver a receita</div></div>
+          <div class="card-body" id="fin-cli-list"><div class="loading-row"><span class="spin"></span>carregando...</div></div>
         </div>
         <div class="card">
-          <div class="card-header"><div class="card-title">Metas Mensais</div></div>
+          <div class="card-header"><div class="card-title">Receita por Serviço</div></div>
           <div class="card-body">
-            <div class="progress-wrap">
-              <div class="progress-label"><span>Meta de Receita</span><span id="meta-receita-label">R$ 0 / R$ 5.000</span></div>
-              <div class="progress-bar"><div class="progress-fill" id="meta-receita-bar" style="background:var(--green);width:0%"></div></div>
-            </div>
-            <div class="progress-wrap">
-              <div class="progress-label"><span>Novos Clientes</span><span id="meta-clientes-label">0 / 3</span></div>
-              <div class="progress-bar"><div class="progress-fill" id="meta-clientes-bar" style="background:var(--accent);width:0%"></div></div>
-            </div>
-            <div class="progress-wrap">
-              <div class="progress-label"><span>Agentes IA Prontos</span><span>0 / 5</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="background:var(--accent2);width:0%"></div></div>
-            </div>
+            <div class="progress-wrap"><div class="progress-label"><span>Tráfego Pago</span><span id="fin-trafego-label">R$ 0</span></div><div class="progress-bar"><div class="progress-fill" id="fin-trafego-bar" style="background:var(--accent);width:0%"></div></div></div>
+            <div class="progress-wrap"><div class="progress-label"><span>Agentes IA</span><span id="fin-ia-label">R$ 0</span></div><div class="progress-bar"><div class="progress-fill" id="fin-ia-bar" style="background:var(--accent2);width:0%"></div></div></div>
+            <div class="progress-wrap"><div class="progress-label"><span>Tráfego + IA</span><span id="fin-both-label">R$ 0</span></div><div class="progress-bar"><div class="progress-fill" id="fin-both-bar" style="background:var(--green);width:0%"></div></div></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ═══ ASSINATURAS ═══ -->
+    <!-- ASSINATURAS -->
     <div class="section" id="section-assinaturas">
       <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="kpi-card c-red"><div class="kpi-label">Total Mensal</div><div class="kpi-value" style="color:var(--red)" id="sub-total">R$ 0</div><div class="kpi-sub">todas as ferramentas</div></div>
-        <div class="kpi-card c-amber"><div class="kpi-label">Total Anual</div><div class="kpi-value" style="color:var(--amber)" id="sub-anual">R$ 0</div><div class="kpi-sub">projeção</div></div>
-        <div class="kpi-card c-cyan"><div class="kpi-label">Ferramentas Ativas</div><div class="kpi-value" style="color:var(--accent)" id="sub-count">3</div><div class="kpi-sub">em uso</div></div>
+        <div class="kpi-card c-red"><div class="kpi-label">Total Mensal</div><div class="kpi-value" style="color:var(--red)" id="sub-total">R$ 0</div><div class="kpi-sub">ferramentas ativas</div></div>
+        <div class="kpi-card c-amber"><div class="kpi-label">Projeção Anual</div><div class="kpi-value" style="color:var(--amber)" id="sub-anual">R$ 0</div><div class="kpi-sub">estimativa</div></div>
+        <div class="kpi-card c-cyan"><div class="kpi-label">Ferramentas</div><div class="kpi-value" style="color:var(--accent)" id="sub-count">0</div><div class="kpi-sub">ativas</div></div>
       </div>
       <div class="card">
-        <div class="card-header">
-          <div class="card-title">Gerenciar Assinaturas e Ferramentas</div>
-          <span class="card-action" onclick="openModal('sub')">+ Adicionar</span>
-        </div>
-        <div class="card-body" style="padding:0 20px" id="subs-list">
-          <div class="sub-item">
-            <div class="sub-left"><div class="sub-icon" style="background:rgba(0,212,255,.1);color:var(--accent)">MI</div><div><div class="sub-name">Meta Intelligence (GitHub)</div><div class="sub-cycle">gratuito · hospedagem web</div></div></div>
-            <div style="text-align:right"><div class="sub-price" style="color:var(--green)">R$ 0</div><div class="sub-next" style="color:var(--muted)">sem custo</div></div>
-          </div>
-          <div class="sub-item">
-            <div class="sub-left"><div class="sub-icon" style="background:rgba(123,97,255,.1);color:var(--accent2)">N8</div><div><div class="sub-name">N8N Cloud</div><div class="sub-cycle">gratuito · automação</div></div></div>
-            <div style="text-align:right"><div class="sub-price" style="color:var(--green)">R$ 0</div><div class="sub-next" style="color:var(--muted)">sem custo</div></div>
-          </div>
-          <div class="sub-item">
-            <div class="sub-left"><div class="sub-icon" style="background:rgba(0,229,160,.1);color:var(--green)">EV</div><div><div class="sub-name">Evolution API (Railway)</div><div class="sub-cycle">gratuito · WhatsApp</div></div></div>
-            <div style="text-align:right"><div class="sub-price" style="color:var(--green)">R$ 0</div><div class="sub-next" style="color:var(--muted)">sem custo</div></div>
-          </div>
-        </div>
+        <div class="card-header"><div class="card-title">Gerenciar Ferramentas e Assinaturas</div><span class="card-action" onclick="openModal('sub')">+ Adicionar</span></div>
+        <div style="padding:0 18px" id="subs-list"><div class="loading-row"><span class="spin"></span>carregando...</div></div>
       </div>
     </div>
 
@@ -681,346 +482,546 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 </main>
 
 <!-- MODAL -->
-<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modal-content">
     <div class="modal-title" id="modal-title">Novo Item</div>
     <div id="modal-fields"></div>
     <div class="modal-btns">
       <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn-primary" id="modal-save" onclick="saveModal()">Salvar</button>
+      <button class="btn-primary" id="modal-save-btn" onclick="saveModal()">Salvar</button>
     </div>
   </div>
 </div>
 
 <script>
-// ── STATE ───────────────────────────────────────────────
-const STATE_KEY = 'rasc_dashboard_v1';
-let state = {
-  clientes: [],
-  leads: [],
-  posts: [],
-  subs: [
-    {name:'Meta Intelligence',cycle:'gratuito',price:0,icon:'MI',color:'var(--accent)'},
-    {name:'N8N Cloud',cycle:'gratuito',price:0,icon:'N8',color:'var(--accent2)'},
-    {name:'Evolution API',cycle:'gratuito',price:0,icon:'EV',color:'var(--green)'},
-  ]
+// ── SUPABASE CONFIG ─────────────────────────────────────────
+const SUPA_URL = 'https://odmopyluudtndpaicobp.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kbW9weWx1dWR0bmRwYWljb2JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2NTM3NzAsImV4cCI6MjA2MjIyOTc3MH0.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kbW9weWx1dWR0bmRwYWljb2JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2NTM3NzAsImV4cCI6MjA2MjIyOTc3MH0';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let currentUser = null;
+let currentModal = '';
+let cache = { clientes:[], leads:[], posts:[], subs:[] };
+
+// ── HELPERS ─────────────────────────────────────────────────
+const fmt = n => 'R$ ' + (parseFloat(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtDate = d => { if(!d) return '–'; const [y,m,dd]=d.split('-'); return `${dd}/${m}`; };
+const servicePill = s => {
+  if(s==='trafego') return '<span class="pill pill-blue">Tráfego Pago</span>';
+  if(s==='agente_ia') return '<span class="pill pill-purple">Agente IA</span>';
+  return '<span class="pill pill-green">Tráfego + IA</span>';
+};
+const statusPill = s => {
+  const map = {Ativo:'pill-green',Pausado:'pill-amber',Onboarding:'pill-blue',Inativo:'pill-red'};
+  return `<span class="pill ${map[s]||'pill-amber'}">${s}</span>`;
 };
 
-function loadState() {
-  try {
-    const s = localStorage.getItem(STATE_KEY);
-    if (s) state = {...state, ...JSON.parse(s)};
-  } catch(e){}
-}
-function saveState() {
-  localStorage.setItem(STATE_KEY, JSON.stringify(state));
+// ── AUTH ────────────────────────────────────────────────────
+function toggleRegister() {
+  const lf = document.getElementById('login-form');
+  const rf = document.getElementById('register-form');
+  lf.style.display = lf.style.display==='none' ? '' : 'none';
+  rf.style.display = rf.style.display==='none' ? '' : 'none';
 }
 
-// ── NAVIGATION ──────────────────────────────────────────
-function showSection(id, el) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('section-'+id).classList.add('active');
-  if(el) el.classList.add('active');
-  const titles = {overview:'Overview',trafego:'Tráfego Pago',agentes:'Agentes IA',pipeline:'Pipeline de Vendas',conteudo:'Produção de Conteúdo',financeiro:'Financeiro',assinaturas:'Assinaturas & Ferramentas'};
-  document.getElementById('page-title').textContent = titles[id]||id;
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const btn   = document.getElementById('login-btn');
+  const err   = document.getElementById('login-error');
+  if(!email||!pass){err.textContent='Preencha email e senha';return;}
+  btn.disabled=true; btn.textContent='Entrando...'; err.textContent='';
+  const {data,error} = await sb.auth.signInWithPassword({email,password:pass});
+  if(error){err.textContent=error.message==='Invalid login credentials'?'Email ou senha incorretos':error.message;btn.disabled=false;btn.textContent='Entrar';return;}
+  onLogin(data.user);
+}
+
+async function doRegister() {
+  const nome  = document.getElementById('reg-nome').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass  = document.getElementById('reg-pass').value;
+  const btn   = document.getElementById('reg-btn');
+  const err   = document.getElementById('reg-error');
+  if(!nome||!email||!pass){err.textContent='Preencha todos os campos';return;}
+  if(pass.length<6){err.textContent='Senha mínima: 6 caracteres';return;}
+  btn.disabled=true; btn.textContent='Criando conta...'; err.textContent='';
+  const {data,error} = await sb.auth.signUp({email,password:pass,options:{data:{nome}}});
+  if(error){err.textContent=error.message;btn.disabled=false;btn.textContent='Criar conta';return;}
+  err.style.color='var(--green)'; err.textContent='Conta criada! Verifique seu email.';
+  btn.disabled=false; btn.textContent='Criar conta';
+}
+
+async function doLogout() {
+  if(!confirm('Sair do RASC Command Center?'))return;
+  await sb.auth.signOut();
+  currentUser=null;
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+function onLogin(user) {
+  currentUser = user;
+  document.getElementById('login-screen').classList.add('hidden');
+  const name = user.user_metadata?.nome || user.email.split('@')[0];
+  document.getElementById('sidebar-name').textContent = name;
+  document.getElementById('sidebar-avatar').textContent = name.charAt(0).toUpperCase();
+  const now = new Date();
+  document.getElementById('page-date').textContent = now.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  loadAll();
+  insertDefaultSubs();
+}
+
+async function insertDefaultSubs() {
+  const {data} = await sb.from('assinaturas').select('id').eq('user_id',currentUser.id).limit(1);
+  if(data&&data.length>0) return;
+  const defaults = [
+    {nome:'Meta Intelligence',sigla:'MI',custo_mensal:0,ciclo:'gratuito',categoria:'Análise'},
+    {nome:'N8N Cloud',sigla:'N8',custo_mensal:0,ciclo:'gratuito',categoria:'Automação'},
+    {nome:'Evolution API (Railway)',sigla:'EV',custo_mensal:0,ciclo:'gratuito',categoria:'WhatsApp'},
+    {nome:'Supabase',sigla:'SB',custo_mensal:0,ciclo:'gratuito',categoria:'Banco de dados'},
+    {nome:'Claude API (Anthropic)',sigla:'AI',custo_mensal:3,ciclo:'mensal',categoria:'IA'},
+  ];
+  await sb.from('assinaturas').insert(defaults.map(d=>({...d,user_id:currentUser.id})));
+}
+
+// ── DATA LOADING ────────────────────────────────────────────
+async function loadAll() {
+  await Promise.all([loadClientes(),loadLeads(),loadPosts(),loadSubs()]);
   renderAll();
 }
 
-// ── MODAL ───────────────────────────────────────────────
-let currentModal = '';
-function openModal(type='trafego') {
-  currentModal = type;
-  const overlay = document.getElementById('modal-overlay');
-  const title = document.getElementById('modal-title');
-  const fields = document.getElementById('modal-fields');
-  overlay.classList.add('open');
-
-  if(type==='trafego') {
-    title.textContent = 'Novo Cliente — Tráfego';
-    fields.innerHTML = `
-      <div class="modal-field"><label>Nome do Cliente</label><input id="mf-name" placeholder="Ex: César Imports DF"></div>
-      <div class="modal-field"><label>Segmento</label><input id="mf-seg" placeholder="Ex: Eletrônicos, Saúde, Varejo..."></div>
-      <div class="modal-field"><label>Mensalidade (R$)</label><input id="mf-price" type="number" placeholder="1500"></div>
-      <div class="modal-field"><label>Orçamento de Mídia/dia (R$)</label><input id="mf-budget" type="number" placeholder="50"></div>
-      <div class="modal-field"><label>Plataforma</label><select id="mf-plat"><option>Meta Ads</option><option>Google Ads</option><option>Meta + Google</option><option>TikTok Ads</option></select></div>
-      <div class="modal-field"><label>Status</label><select id="mf-status"><option>Ativo</option><option>Pausado</option><option>Onboarding</option></select></div>`;
-  } else if(type==='lead') {
-    title.textContent = 'Novo Lead — Pipeline';
-    fields.innerHTML = `
-      <div class="modal-field"><label>Nome / Empresa</label><input id="mf-name" placeholder="Ex: Clínica Dr. Silva"></div>
-      <div class="modal-field"><label>Segmento</label><input id="mf-seg" placeholder="Ex: Clínica Médica, E-commerce..."></div>
-      <div class="modal-field"><label>Valor Estimado (R$)</label><input id="mf-price" type="number" placeholder="2000"></div>
-      <div class="modal-field"><label>Etapa</label><select id="mf-stage"><option value="prosp">Prospecção</option><option value="prop">Proposta Enviada</option><option value="neg">Negociação</option><option value="close">Fechado</option></select></div>
-      <div class="modal-field"><label>Serviço de Interesse</label><select id="mf-service"><option>Tráfego Pago</option><option>Agente IA</option><option>Tráfego + IA</option><option>Conteúdo</option></select></div>`;
-  } else if(type==='post') {
-    title.textContent = 'Novo Post';
-    const today = new Date().toISOString().split('T')[0];
-    fields.innerHTML = `
-      <div class="modal-field"><label>Data</label><input id="mf-date" type="date" value="${today}"></div>
-      <div class="modal-field"><label>Cliente</label><input id="mf-name" placeholder="Ex: César Imports DF"></div>
-      <div class="modal-field"><label>Formato</label><select id="mf-format"><option>Reels</option><option>Feed</option><option>Stories</option><option>Carrossel</option></select></div>
-      <div class="modal-field"><label>Tema / Descrição</label><input id="mf-tema" placeholder="Ex: Promoção iPhone 15 Pro"></div>
-      <div class="modal-field"><label>Status</label><select id="mf-status"><option>Planejado</option><option>Em criação</option><option>Aguardando aprovação</option><option>Publicado</option></select></div>`;
-  } else if(type==='sub') {
-    title.textContent = 'Nova Ferramenta / Assinatura';
-    fields.innerHTML = `
-      <div class="modal-field"><label>Nome da Ferramenta</label><input id="mf-name" placeholder="Ex: Canva Pro"></div>
-      <div class="modal-field"><label>Sigla (2-3 letras)</label><input id="mf-icon" placeholder="CA" maxlength="3"></div>
-      <div class="modal-field"><label>Custo Mensal (R$)</label><input id="mf-price" type="number" placeholder="0"></div>
-      <div class="modal-field"><label>Ciclo de Cobrança</label><select id="mf-cycle"><option>mensal</option><option>anual</option><option>gratuito</option></select></div>
-      <div class="modal-field"><label>Categoria</label><select id="mf-cat"><option>Design</option><option>IA</option><option>Automação</option><option>Ads</option><option>Comunicação</option><option>Gestão</option><option>Outro</option></select></div>`;
-  } else if(type==='agente') {
-    title.textContent = 'Novo Agente IA';
-    fields.innerHTML = `
-      <div class="modal-field"><label>Nome do Agente</label><input id="mf-name" placeholder="Ex: Agente Dermatologia"></div>
-      <div class="modal-field"><label>Especialidade</label><input id="mf-seg" placeholder="Ex: Clínica Dermatológica"></div>
-      <div class="modal-field"><label>Status</label><select id="mf-status"><option>Em desenvolvimento</option><option>Teste</option><option>Ativo</option></select></div>`;
-  }
+async function loadClientes() {
+  const {data,error} = await sb.from('clientes').select('*').eq('user_id',currentUser.id).order('criado_em',{ascending:false});
+  if(!error) cache.clientes = data||[];
 }
 
-function closeModal(e) {
-  if(e && e.target !== document.getElementById('modal-overlay')) return;
-  document.getElementById('modal-overlay').classList.remove('open');
+async function loadLeads() {
+  const {data,error} = await sb.from('leads').select('*').eq('user_id',currentUser.id).order('criado_em',{ascending:false});
+  if(!error) cache.leads = data||[];
 }
 
-function saveModal() {
-  const name = document.getElementById('mf-name')?.value.trim();
-  if(!name) return;
-
-  if(currentModal==='trafego') {
-    state.clientes.push({
-      name, seg: document.getElementById('mf-seg').value,
-      price: parseFloat(document.getElementById('mf-price').value)||0,
-      budget: parseFloat(document.getElementById('mf-budget').value)||0,
-      plat: document.getElementById('mf-plat').value,
-      status: document.getElementById('mf-status').value,
-      type:'trafego'
-    });
-  } else if(currentModal==='lead') {
-    state.leads.push({
-      name, seg: document.getElementById('mf-seg').value,
-      price: parseFloat(document.getElementById('mf-price').value)||0,
-      stage: document.getElementById('mf-stage').value,
-      service: document.getElementById('mf-service').value
-    });
-  } else if(currentModal==='post') {
-    state.posts.push({
-      date: document.getElementById('mf-date').value,
-      name, format: document.getElementById('mf-format').value,
-      tema: document.getElementById('mf-tema').value,
-      status: document.getElementById('mf-status').value
-    });
-  } else if(currentModal==='sub') {
-    state.subs.push({
-      name, icon: document.getElementById('mf-icon').value||'??',
-      price: parseFloat(document.getElementById('mf-price').value)||0,
-      cycle: document.getElementById('mf-cycle').value,
-      cat: document.getElementById('mf-cat').value,
-      color:'var(--accent2)'
-    });
-  }
-
-  saveState();
-  document.getElementById('modal-overlay').classList.remove('open');
-  renderAll();
+async function loadPosts() {
+  const {data,error} = await sb.from('posts').select('*').eq('user_id',currentUser.id).order('data_post',{ascending:true});
+  if(!error) cache.posts = data||[];
 }
 
-function openAgentModal(type) {}
+async function loadSubs() {
+  const {data,error} = await sb.from('assinaturas').select('*').eq('user_id',currentUser.id).order('criado_em',{ascending:true});
+  if(!error) cache.subs = data||[];
+}
 
-// ── RENDER ───────────────────────────────────────────────
+// ── RENDER ───────────────────────────────────────────────────
 function renderAll() {
-  renderKPIs();
-  renderTrafegoTable();
+  renderOverview();
+  renderClientes();
   renderPipeline();
   renderPosts();
   renderSubs();
   renderFinanceiro();
-  renderOverviewClients();
   renderCalendar();
 }
 
-function fmt(n){return 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
-
-function renderKPIs() {
-  const tClientes = state.clientes.filter(c=>c.status==='Ativo');
-  const receita = state.clientes.reduce((s,c)=>s+c.price,0);
-  const subTotal = state.subs.reduce((s,c)=>s+c.price,0);
-  const leads = state.leads.length;
-
-  document.getElementById('kpi-receita').textContent = fmt(receita);
-  document.getElementById('kpi-clientes').textContent = tClientes.length;
-  document.getElementById('kpi-subs').textContent = fmt(subTotal);
-  const subPct = receita > 0 ? Math.round(subTotal/receita*100) : 0;
-  document.getElementById('kpi-subs-pct').textContent = subPct+'%';
-
-  document.getElementById('t-clientes').textContent = tClientes.length;
-  document.getElementById('t-receita').textContent = fmt(receita);
-  document.getElementById('t-camps').textContent = tClientes.length;
-  document.getElementById('c-clientes').textContent = state.clientes.length;
-  document.getElementById('c-posts').textContent = state.posts.length;
-  document.getElementById('c-pend').textContent = state.posts.filter(p=>p.status==='Planejado'||p.status==='Em criação').length;
+function renderOverview() {
+  const ativos = cache.clientes.filter(c=>c.status==='Ativo');
+  const receita = cache.clientes.reduce((s,c)=>s+(parseFloat(c.mensalidade)||0),0);
+  const subs = cache.subs.reduce((s,a)=>s+(parseFloat(a.custo_mensal)||0),0);
+  document.getElementById('ov-receita').textContent = fmt(receita);
+  document.getElementById('ov-clientes').textContent = ativos.length;
+  document.getElementById('ov-leads').textContent = cache.leads.length;
+  document.getElementById('ov-subs').textContent = fmt(subs);
+  document.getElementById('ov-meta-bar').style.width = Math.min(receita/5000*100,100)+'%';
+  document.getElementById('ov-meta-label').textContent = fmt(receita)+' / R$ 5.000';
+  document.getElementById('ov-cli-bar').style.width = Math.min(ativos.length/5*100,100)+'%';
+  document.getElementById('ov-cli-label').textContent = ativos.length+' / 5';
+  const tbody = document.getElementById('ov-clients-body');
+  if(!cache.clientes.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;font-family:var(--mono);font-size:12px">Nenhum cliente cadastrado</td></tr>';return;}
+  tbody.innerHTML = cache.clientes.slice(0,5).map(c=>`<tr>
+    <td style="font-weight:500">${c.nome}</td>
+    <td>${servicePill(c.servico)}</td>
+    <td style="font-family:var(--mono);color:var(--green)">${fmt(c.mensalidade)}</td>
+    <td>${statusPill(c.status)}</td>
+  </tr>`).join('');
 }
 
-function renderTrafegoTable() {
-  const tbody = document.getElementById('trafego-table-body');
-  if(!state.clientes.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px;font-family:var(--mono);font-size:12px">Nenhum cliente · clique em "+ Adicionar cliente"</td></tr>';return;}
-  tbody.innerHTML = state.clientes.map((c,i)=>`
-    <tr>
-      <td style="font-weight:500">${c.name}</td>
-      <td style="color:var(--muted2)">${c.seg||'–'}</td>
-      <td style="font-family:var(--mono)">${fmt(c.budget||0)}/dia</td>
-      <td style="font-family:var(--mono);color:var(--green)">${fmt(c.price)}</td>
-      <td><span class="status-pill pill-blue">${c.plat||'Meta Ads'}</span></td>
-      <td><span class="status-pill ${c.status==='Ativo'?'pill-green':c.status==='Pausado'?'pill-amber':'pill-purple'}">${c.status}</span></td>
-      <td><span style="color:var(--red);cursor:pointer;font-size:11px;font-family:var(--mono)" onclick="removeCliente(${i})">remover</span></td>
-    </tr>`).join('');
-}
-
-function removeCliente(i){state.clientes.splice(i,1);saveState();renderAll();}
-
-function renderOverviewClients() {
-  const tbody = document.getElementById('overview-clients-body');
-  if(!state.clientes.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;font-family:var(--mono);font-size:12px">Adicione clientes para visualizar</td></tr>';return;}
-  tbody.innerHTML = state.clientes.map(c=>`
-    <tr>
-      <td style="font-weight:500">${c.name}</td>
-      <td><span class="status-pill pill-blue">${c.type==='trafego'?'Tráfego':'IA'}</span></td>
-      <td style="font-family:var(--mono);color:var(--green)">${fmt(c.price)}</td>
-      <td><span class="status-pill ${c.status==='Ativo'?'pill-green':c.status==='Pausado'?'pill-amber':'pill-purple'}">${c.status}</span></td>
-    </tr>`).join('');
+function renderClientes() {
+  const ativos = cache.clientes.filter(c=>c.status==='Ativo');
+  const receita = cache.clientes.reduce((s,c)=>s+(parseFloat(c.mensalidade)||0),0);
+  const ticket = ativos.length>0?receita/ativos.length:0;
+  document.getElementById('cl-total').textContent = cache.clientes.length;
+  document.getElementById('cl-receita').textContent = fmt(receita);
+  document.getElementById('cl-ticket').textContent = fmt(ticket);
+  const ia = cache.clientes.filter(c=>c.servico==='agente_ia'||c.servico==='trafego+ia').length;
+  document.getElementById('ag-clientes').textContent = ia;
+  const tbody = document.getElementById('clientes-body');
+  if(!cache.clientes.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px;font-family:var(--mono);font-size:12px">Nenhum cliente · clique em "+ Adicionar cliente"</td></tr>';return;}
+  tbody.innerHTML = cache.clientes.map(c=>`<tr>
+    <td style="font-weight:500">${c.nome}</td>
+    <td>${servicePill(c.servico)}</td>
+    <td style="color:var(--muted2)">${c.segmento||'–'}</td>
+    <td style="font-family:var(--mono);color:var(--green)">${fmt(c.mensalidade)}</td>
+    <td style="font-family:var(--mono);font-size:12px">${c.plataforma||c.especialidade_ia||'–'}</td>
+    <td>${statusPill(c.status)}</td>
+    <td><span style="color:var(--red);cursor:pointer;font-size:11px;font-family:var(--mono)" onclick="deleteCliente('${c.id}')">×</span></td>
+  </tr>`).join('');
 }
 
 function renderPipeline() {
   const stages = {prosp:[],prop:[],neg:[],close:[]};
-  state.leads.forEach(l=>{ if(stages[l.stage]) stages[l.stage].push(l); });
-  const stageNames = {prosp:'col-prosp',prop:'col-prop',neg:'col-neg',close:'col-close'};
-  const cntNames = {prosp:'cnt-prosp',prop:'cnt-prop',neg:'cnt-neg',close:'cnt-close'};
-
-  Object.entries(stages).forEach(([key,leads])=>{
-    document.getElementById(cntNames[key]).textContent = leads.length;
-    document.getElementById(stageNames[key]).innerHTML = leads.map((l,i)=>`
+  cache.leads.forEach(l=>{ if(stages[l.etapa]) stages[l.etapa].push(l); });
+  ['prosp','prop','neg','close'].forEach(k=>{
+    document.getElementById('cnt-'+k).textContent = stages[k].length;
+    document.getElementById('col-'+k).innerHTML = stages[k].map(l=>`
       <div class="pipe-card">
-        <div class="pipe-card-name">${l.name}</div>
-        <div class="pipe-card-type">${l.service||''} · ${l.seg||''}</div>
-        <div class="pipe-card-value">${fmt(l.price)}</div>
-      </div>`).join('');
+        <div class="pipe-card-name">${l.nome}</div>
+        <div class="pipe-card-type">${l.servico||''} · ${l.segmento||''}</div>
+        <div class="pipe-card-value">${fmt(l.valor_estimado)}</div>
+      </div>`).join('') || '<div style="font-size:11px;color:var(--muted);font-family:var(--mono);text-align:center;padding:12px">vazio</div>';
   });
-
-  const total = state.leads.length;
-  const valor = state.leads.reduce((s,l)=>s+l.price,0);
-  const closed = stages.close.length;
-  document.getElementById('pipe-total').textContent = total;
-  document.getElementById('pipe-valor').textContent = fmt(valor);
-  document.getElementById('pipe-conv').textContent = total>0?Math.round(closed/total*100)+'%':'0%';
-  document.getElementById('pipe-ticket').textContent = closed>0?fmt(stages.close.reduce((s,l)=>s+l.price,0)/closed):'R$ 0';
-
-  const pipeStages = ['prosp','prop','neg','close'];
-  const pipeIds = ['pipe-prosp','pipe-prop','pipe-neg','pipe-close'];
-  const pipeColors = ['var(--muted)','var(--amber)','var(--accent)','var(--green)'];
-  pipeStages.forEach((s,i)=>{
-    const count = stages[s].length;
-    const pct = total>0?Math.round(count/total*100):0;
-    const el = document.getElementById(pipeIds[i]+'-count');
-    const bar = document.getElementById(pipeIds[i]+'-bar');
-    if(el) el.textContent = count+' leads';
-    if(bar) bar.style.width = pct+'%';
-  });
+  const total = cache.leads.length;
+  const valor = cache.leads.reduce((s,l)=>s+(parseFloat(l.valor_estimado)||0),0);
+  const fechados = stages.close;
+  const ticketFechado = fechados.length>0?fechados.reduce((s,l)=>s+(parseFloat(l.valor_estimado)||0),0)/fechados.length:0;
+  document.getElementById('pi-total').textContent = total;
+  document.getElementById('pi-valor').textContent = fmt(valor);
+  document.getElementById('pi-fechados').textContent = fechados.length;
+  document.getElementById('pi-ticket').textContent = fmt(ticketFechado);
 }
 
 function renderPosts() {
-  const tbody = document.getElementById('posts-table-body');
-  if(!state.posts.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px;font-family:var(--mono);font-size:12px">Nenhum post · clique em "+ Novo post"</td></tr>';return;}
-  const fmt2 = d=>{ const [y,m,dd]=d.split('-'); return `${dd}/${m}`; };
-  tbody.innerHTML = state.posts.map(p=>`
-    <tr>
-      <td style="font-family:var(--mono)">${fmt2(p.date)}</td>
-      <td style="font-weight:500">${p.name}</td>
-      <td><span class="status-pill ${p.format==='Reels'?'pill-green':p.format==='Feed'?'pill-blue':'pill-amber'}">${p.format}</span></td>
-      <td style="color:var(--muted2)">${p.tema||'–'}</td>
-      <td><span class="status-pill ${p.status==='Publicado'?'pill-green':p.status==='Planejado'?'pill-amber':'pill-blue'}">${p.status}</span></td>
-    </tr>`).join('');
+  const total = cache.posts.length;
+  const pend = cache.posts.filter(p=>p.status==='Planejado'||p.status==='Em criação').length;
+  const pub = cache.posts.filter(p=>p.status==='Publicado').length;
+  document.getElementById('co-total').textContent = total;
+  document.getElementById('co-pend').textContent = pend;
+  document.getElementById('co-pub').textContent = pub;
+  const tbody = document.getElementById('posts-body');
+  if(!cache.posts.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px;font-family:var(--mono);font-size:12px">Nenhum post · clique em "+ Novo post"</td></tr>';return;}
+  const fmtClass = f=>f==='Reels'?'pill-pink':f==='Feed'?'pill-blue':'pill-amber';
+  tbody.innerHTML = cache.posts.map(p=>`<tr>
+    <td style="font-family:var(--mono)">${fmtDate(p.data_post)}</td>
+    <td style="font-weight:500">${p.cliente_nome||'–'}</td>
+    <td><span class="pill ${fmtClass(p.formato)}">${p.formato}</span></td>
+    <td style="color:var(--muted2)">${p.tema||'–'}</td>
+    <td><span class="pill ${p.status==='Publicado'?'pill-green':p.status==='Planejado'?'pill-amber':'pill-blue'}">${p.status}</span></td>
+    <td><span style="color:var(--red);cursor:pointer;font-size:11px;font-family:var(--mono)" onclick="deletePost('${p.id}')">×</span></td>
+  </tr>`).join('');
+}
+
+function renderSubs() {
+  const total = cache.subs.reduce((s,a)=>s+(parseFloat(a.custo_mensal)||0),0);
+  document.getElementById('sub-total').textContent = fmt(total);
+  document.getElementById('sub-anual').textContent = fmt(total*12);
+  document.getElementById('sub-count').textContent = cache.subs.filter(s=>s.ativo).length;
+  const list = document.getElementById('subs-list');
+  if(!cache.subs.length){list.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-family:var(--mono);font-size:12px">Nenhuma ferramenta cadastrada</div>';return;}
+  list.innerHTML = cache.subs.map(s=>`
+    <div class="sub-item">
+      <div class="sub-left">
+        <div class="sub-icon" style="background:rgba(0,212,255,.1);color:var(--accent)">${(s.sigla||s.nome.substring(0,2)).toUpperCase()}</div>
+        <div><div class="sub-name">${s.nome}</div><div class="sub-cycle">${s.ciclo||'mensal'} · ${s.categoria||'ferramenta'}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="text-align:right">
+          <div class="sub-price" style="color:${(s.custo_mensal||0)===0?'var(--green)':'var(--text)'}">${(s.custo_mensal||0)===0?'Gratuito':fmt(s.custo_mensal)}</div>
+          <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${s.ciclo==='anual'?'anual':'por mês'}</div>
+        </div>
+        <span style="color:var(--red);cursor:pointer;font-size:16px;font-family:var(--mono)" onclick="deleteSub('${s.id}')">×</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderFinanceiro() {
+  const receita = cache.clientes.reduce((s,c)=>s+(parseFloat(c.mensalidade)||0),0);
+  const custos = cache.subs.reduce((s,a)=>s+(parseFloat(a.custo_mensal)||0),0);
+  const lucro = receita-custos;
+  const margem = receita>0?Math.round(lucro/receita*100):0;
+  document.getElementById('fin-receita').textContent = fmt(receita);
+  document.getElementById('fin-custos').textContent = fmt(custos);
+  document.getElementById('fin-lucro').textContent = fmt(lucro);
+  document.getElementById('fin-margem').textContent = margem+'%';
+  const rTrafego = cache.clientes.filter(c=>c.servico==='trafego').reduce((s,c)=>s+(parseFloat(c.mensalidade)||0),0);
+  const rIA = cache.clientes.filter(c=>c.servico==='agente_ia').reduce((s,c)=>s+(parseFloat(c.mensalidade)||0),0);
+  const rBoth = cache.clientes.filter(c=>c.servico==='trafego+ia').reduce((s,c)=>s+(parseFloat(c.mensalidade)||0),0);
+  const maxR = Math.max(rTrafego,rIA,rBoth,1);
+  document.getElementById('fin-trafego-label').textContent = fmt(rTrafego);
+  document.getElementById('fin-trafego-bar').style.width = (rTrafego/maxR*100)+'%';
+  document.getElementById('fin-ia-label').textContent = fmt(rIA);
+  document.getElementById('fin-ia-bar').style.width = (rIA/maxR*100)+'%';
+  document.getElementById('fin-both-label').textContent = fmt(rBoth);
+  document.getElementById('fin-both-bar').style.width = (rBoth/maxR*100)+'%';
+  const finList = document.getElementById('fin-cli-list');
+  if(!cache.clientes.length){finList.innerHTML='<div style="color:var(--muted);font-size:12px;font-family:var(--mono)">Nenhum cliente cadastrado</div>';return;}
+  finList.innerHTML = cache.clientes.map(c=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:13px">${c.nome}</div>
+        <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${c.servico}</div>
+      </div>
+      <div style="font-family:var(--mono);color:var(--green)">${fmt(c.mensalidade)}</div>
+    </div>`).join('');
 }
 
 function renderCalendar() {
   const cal = document.getElementById('cal-grid');
   const days = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   const today = new Date();
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate()-today.getDay());
-
+  const sow = new Date(today); sow.setDate(today.getDate()-today.getDay());
   cal.innerHTML = Array.from({length:7},(_,i)=>{
-    const d = new Date(startOfWeek);
-    d.setDate(startOfWeek.getDate()+i);
+    const d = new Date(sow); d.setDate(sow.getDate()+i);
     const ds = d.toISOString().split('T')[0];
-    const dayPosts = state.posts.filter(p=>p.date===ds);
+    const dp = cache.posts.filter(p=>p.data_post===ds);
     const isToday = ds===today.toISOString().split('T')[0];
     return `<div class="cal-day" style="${isToday?'border:1px solid rgba(0,212,255,.3)':''}">
       <div class="cal-day-label" style="${isToday?'color:var(--accent)':''}">${days[i]} ${d.getDate()}</div>
-      ${dayPosts.map(p=>`<div class="cal-post ${p.format==='Reels'?'reels':p.format==='Feed'?'feed':'stories'}">${p.tema||p.format}</div>`).join('')}
+      ${dp.map(p=>`<div class="cal-post ${p.formato==='Reels'?'reels':p.formato==='Feed'?'feed':'stories'}">${p.tema||p.formato}</div>`).join('')}
     </div>`;
   }).join('');
 }
 
-function renderSubs() {
-  const list = document.getElementById('subs-list');
-  const total = state.subs.reduce((s,c)=>s+c.price,0);
-  document.getElementById('sub-total').textContent = fmt(total);
-  document.getElementById('sub-anual').textContent = fmt(total*12);
-  document.getElementById('sub-count').textContent = state.subs.length;
-  document.getElementById('kpi-subs').textContent = fmt(total);
+// ── NAVIGATION ───────────────────────────────────────────────
+function showSection(id, el) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('section-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  const titles={overview:'Overview',clientes:'Clientes',agentes:'Agentes IA',pipeline:'Pipeline',conteudo:'Conteúdo',metaintel:'Meta Intelligence',financeiro:'Financeiro',assinaturas:'Assinaturas'};
+  document.getElementById('page-title').textContent = titles[id]||id;
+}
 
-  list.innerHTML = state.subs.map(s=>`
-    <div class="sub-item">
-      <div class="sub-left">
-        <div class="sub-icon" style="background:rgba(123,97,255,.1);color:${s.color||'var(--accent2)'}">${s.icon}</div>
-        <div><div class="sub-name">${s.name}</div><div class="sub-cycle">${s.cycle||'mensal'} · ${s.cat||'ferramenta'}</div></div>
+// ── MODAL ────────────────────────────────────────────────────
+let selService = 'trafego';
+
+function openModal(type) {
+  currentModal = type;
+  selService = 'trafego';
+  const overlay = document.getElementById('modal-overlay');
+  const title   = document.getElementById('modal-title');
+  const fields  = document.getElementById('modal-fields');
+  overlay.classList.add('open');
+
+  if(type==='cliente') {
+    title.textContent = 'Novo Cliente';
+    fields.innerHTML = `
+      <div style="margin-bottom:14px">
+        <div style="font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Tipo de Serviço</div>
+        <div class="service-toggle">
+          <div class="service-opt selected" id="opt-trafego" onclick="selectService('trafego')">
+            <div class="service-opt-icon">📈</div>
+            <div class="service-opt-label">Tráfego Pago</div>
+            <div class="service-opt-sub">Meta / Google Ads</div>
+          </div>
+          <div class="service-opt" id="opt-ia" onclick="selectService('agente_ia')">
+            <div class="service-opt-icon">🤖</div>
+            <div class="service-opt-label">Agente IA</div>
+            <div class="service-opt-sub">WhatsApp + Claude</div>
+          </div>
+          <div class="service-opt" id="opt-both" onclick="selectService('trafego+ia')">
+            <div class="service-opt-icon">🚀</div>
+            <div class="service-opt-label">Tráfego + IA</div>
+            <div class="service-opt-sub">Combo completo</div>
+          </div>
+        </div>
       </div>
-      <div style="text-align:right">
-        <div class="sub-price" style="color:${s.price===0?'var(--green)':'var(--text)'}">${s.price===0?'Gratuito':fmt(s.price)}</div>
-        <div class="sub-next" style="color:var(--muted)">${s.cycle==='anual'?'anual':'por mês'}</div>
+      <div class="grid-2">
+        <div class="modal-field"><label>Nome do Cliente</label><input id="mf-nome" placeholder="Ex: Clínica Dr. Silva"></div>
+        <div class="modal-field"><label>Segmento</label><input id="mf-seg" placeholder="Ex: Odontologia, E-commerce..."></div>
       </div>
-    </div>`).join('');
+      <div class="grid-2">
+        <div class="modal-field"><label>Mensalidade (R$)</label><input id="mf-preco" type="number" placeholder="1500" step="50"></div>
+        <div class="modal-field"><label>Status</label>
+          <select id="mf-status"><option>Ativo</option><option>Onboarding</option><option>Pausado</option><option>Inativo</option></select>
+        </div>
+      </div>
+      <div id="fields-trafego">
+        <div class="grid-2">
+          <div class="modal-field"><label>Plataforma</label>
+            <select id="mf-plat"><option>Meta Ads</option><option>Google Ads</option><option>Meta + Google</option><option>TikTok Ads</option></select>
+          </div>
+          <div class="modal-field"><label>Orçamento Mídia/dia (R$)</label><input id="mf-budget" type="number" placeholder="50" step="10"></div>
+        </div>
+        <div class="modal-field"><label>Meta CPR (R$)</label><input id="mf-cpr" type="number" placeholder="3.00" step="0.5"></div>
+      </div>
+      <div id="fields-ia" style="display:none">
+        <div class="modal-field"><label>Especialidade da Clínica</label><input id="mf-espec" placeholder="Ex: Odontologia, Fisioterapia..."></div>
+        <div class="modal-field"><label>Stack do Agente</label><input id="mf-stack" placeholder="Ex: Claude + N8N + Evolution API"></div>
+      </div>
+      <div class="grid-2">
+        <div class="modal-field"><label>Instagram</label><input id="mf-insta" placeholder="@usuario"></div>
+        <div class="modal-field"><label>WhatsApp</label><input id="mf-wpp" placeholder="55119..."></div>
+      </div>
+      <div class="modal-field"><label>Notas</label><textarea id="mf-notas" placeholder="Observações sobre o cliente..."></textarea></div>`;
+  } else if(type==='lead') {
+    title.textContent = 'Novo Lead — Pipeline';
+    fields.innerHTML = `
+      <div class="grid-2">
+        <div class="modal-field"><label>Nome / Empresa</label><input id="mf-nome" placeholder="Ex: Clínica Dr. Silva"></div>
+        <div class="modal-field"><label>Segmento</label><input id="mf-seg" placeholder="Ex: Odontologia..."></div>
+      </div>
+      <div class="grid-2">
+        <div class="modal-field"><label>Serviço de Interesse</label>
+          <select id="mf-servico"><option value="trafego">Tráfego Pago</option><option value="agente_ia">Agente IA</option><option value="trafego+ia">Tráfego + IA</option></select>
+        </div>
+        <div class="modal-field"><label>Valor Estimado (R$)</label><input id="mf-valor" type="number" placeholder="2000"></div>
+      </div>
+      <div class="grid-2">
+        <div class="modal-field"><label>Etapa</label>
+          <select id="mf-etapa"><option value="prosp">Prospecção</option><option value="prop">Proposta Enviada</option><option value="neg">Negociação</option><option value="close">Fechado</option></select>
+        </div>
+        <div class="modal-field"><label>Contato</label><input id="mf-contato" placeholder="WhatsApp ou email"></div>
+      </div>
+      <div class="modal-field"><label>Notas</label><textarea id="mf-notas" placeholder="Informações sobre o lead..."></textarea></div>`;
+  } else if(type==='post') {
+    const today = new Date().toISOString().split('T')[0];
+    title.textContent = 'Novo Post';
+    fields.innerHTML = `
+      <div class="grid-2">
+        <div class="modal-field"><label>Data</label><input id="mf-data" type="date" value="${today}"></div>
+        <div class="modal-field"><label>Cliente</label><input id="mf-nome" placeholder="Ex: César Imports DF"></div>
+      </div>
+      <div class="grid-2">
+        <div class="modal-field"><label>Formato</label>
+          <select id="mf-formato"><option>Reels</option><option>Feed</option><option>Stories</option><option>Carrossel</option></select>
+        </div>
+        <div class="modal-field"><label>Status</label>
+          <select id="mf-status"><option>Planejado</option><option>Em criação</option><option>Aguardando aprovação</option><option>Publicado</option></select>
+        </div>
+      </div>
+      <div class="modal-field"><label>Tema / Descrição</label><input id="mf-tema" placeholder="Ex: Promoção Dia das Mães"></div>`;
+  } else if(type==='sub') {
+    title.textContent = 'Nova Ferramenta / Assinatura';
+    fields.innerHTML = `
+      <div class="grid-2">
+        <div class="modal-field"><label>Nome</label><input id="mf-nome" placeholder="Ex: Canva Pro"></div>
+        <div class="modal-field"><label>Sigla (2-3 letras)</label><input id="mf-sigla" placeholder="CA" maxlength="3"></div>
+      </div>
+      <div class="grid-2">
+        <div class="modal-field"><label>Custo Mensal (R$)</label><input id="mf-preco" type="number" placeholder="0" step="1"></div>
+        <div class="modal-field"><label>Ciclo</label>
+          <select id="mf-ciclo"><option>mensal</option><option>anual</option><option>gratuito</option></select>
+        </div>
+      </div>
+      <div class="modal-field"><label>Categoria</label>
+        <select id="mf-cat"><option>Design</option><option>IA</option><option>Automação</option><option>Ads</option><option>CRM</option><option>WhatsApp</option><option>Hospedagem</option><option>Outro</option></select>
+      </div>`;
+  }
 }
 
-function renderFinanceiro() {
-  const receita = state.clientes.reduce((s,c)=>s+c.price,0);
-  const custos = state.subs.reduce((s,c)=>s+c.price,0);
-  const lucro = receita-custos;
-  const margem = receita>0?Math.round(lucro/receita*100):0;
-
-  document.getElementById('fin-receita').textContent = fmt(receita);
-  document.getElementById('fin-custos').textContent = fmt(custos);
-  document.getElementById('fin-lucro').textContent = fmt(lucro);
-  document.getElementById('fin-margem').textContent = margem+'%';
-
-  const metaBar = document.getElementById('meta-receita-bar');
-  const metaLabel = document.getElementById('meta-receita-label');
-  if(metaBar){metaBar.style.width = Math.min(receita/5000*100,100)+'%';}
-  if(metaLabel){metaLabel.textContent = fmt(receita)+' / R$ 5.000';}
-
-  const cliBar = document.getElementById('meta-clientes-bar');
-  const cliLabel = document.getElementById('meta-clientes-label');
-  if(cliBar){cliBar.style.width = Math.min(state.clientes.length/3*100,100)+'%';}
-  if(cliLabel){cliLabel.textContent = state.clientes.length+' / 3';}
-
-  const recList = document.getElementById('fin-receita-list');
-  if(!state.clientes.length){recList.innerHTML='<div style="color:var(--muted);font-size:12px;font-family:var(--mono)">Adicione clientes para ver a receita</div>';return;}
-  recList.innerHTML = state.clientes.map(c=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="font-size:13px">${c.name}</div>
-      <div style="font-family:var(--mono);color:var(--green)">${fmt(c.price)}</div>
-    </div>`).join('');
+function selectService(s) {
+  selService = s;
+  ['trafego','ia','both'].forEach(k=>document.getElementById('opt-'+k).classList.remove('selected'));
+  document.getElementById('opt-'+{trafego:'trafego','agente_ia':'ia','trafego+ia':'both'}[s]).classList.add('selected');
+  document.getElementById('fields-trafego').style.display = (s==='trafego'||s==='trafego+ia')?'':'none';
+  document.getElementById('fields-ia').style.display = (s==='agente_ia'||s==='trafego+ia')?'':'none';
 }
 
-// ── INIT ─────────────────────────────────────────────────
-function init() {
-  loadState();
-  const now = new Date();
-  document.getElementById('page-date').textContent = now.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-  renderAll();
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
 }
 
+async function saveModal() {
+  const btn = document.getElementById('modal-save-btn');
+  btn.disabled=true; btn.textContent='Salvando...';
+  try {
+    if(currentModal==='cliente') {
+      const nome = document.getElementById('mf-nome').value.trim();
+      if(!nome){alert('Informe o nome do cliente');return;}
+      const row = {
+        user_id: currentUser.id,
+        nome,
+        segmento: document.getElementById('mf-seg').value,
+        servico: selService,
+        mensalidade: parseFloat(document.getElementById('mf-preco').value)||0,
+        status: document.getElementById('mf-status').value,
+        instagram: document.getElementById('mf-insta')?.value||null,
+        whatsapp: document.getElementById('mf-wpp')?.value||null,
+        notas: document.getElementById('mf-notas')?.value||null,
+      };
+      if(selService==='trafego'||selService==='trafego+ia'){
+        row.plataforma = document.getElementById('mf-plat')?.value;
+        row.orcamento_dia = parseFloat(document.getElementById('mf-budget')?.value)||null;
+        row.meta_cpr = parseFloat(document.getElementById('mf-cpr')?.value)||null;
+      }
+      if(selService==='agente_ia'||selService==='trafego+ia'){
+        row.especialidade_ia = document.getElementById('mf-espec')?.value||null;
+        row.stack_ia = document.getElementById('mf-stack')?.value||null;
+      }
+      const {error} = await sb.from('clientes').insert([row]);
+      if(error) throw error;
+      await loadClientes(); renderClientes(); renderOverview(); renderFinanceiro();
+    } else if(currentModal==='lead') {
+      const nome = document.getElementById('mf-nome').value.trim();
+      if(!nome){alert('Informe o nome do lead');return;}
+      const {error} = await sb.from('leads').insert([{
+        user_id: currentUser.id,
+        nome,
+        segmento: document.getElementById('mf-seg').value,
+        servico: document.getElementById('mf-servico').value,
+        valor_estimado: parseFloat(document.getElementById('mf-valor').value)||0,
+        etapa: document.getElementById('mf-etapa').value,
+        contato: document.getElementById('mf-contato').value,
+        notas: document.getElementById('mf-notas').value,
+      }]);
+      if(error) throw error;
+      await loadLeads(); renderPipeline(); renderOverview();
+    } else if(currentModal==='post') {
+      const {error} = await sb.from('posts').insert([{
+        user_id: currentUser.id,
+        cliente_nome: document.getElementById('mf-nome').value,
+        data_post: document.getElementById('mf-data').value,
+        formato: document.getElementById('mf-formato').value,
+        status: document.getElementById('mf-status').value,
+        tema: document.getElementById('mf-tema').value,
+      }]);
+      if(error) throw error;
+      await loadPosts(); renderPosts(); renderCalendar();
+    } else if(currentModal==='sub') {
+      const nome = document.getElementById('mf-nome').value.trim();
+      if(!nome){alert('Informe o nome da ferramenta');return;}
+      const {error} = await sb.from('assinaturas').insert([{
+        user_id: currentUser.id,
+        nome,
+        sigla: document.getElementById('mf-sigla').value||nome.substring(0,2).toUpperCase(),
+        custo_mensal: parseFloat(document.getElementById('mf-preco').value)||0,
+        ciclo: document.getElementById('mf-ciclo').value,
+        categoria: document.getElementById('mf-cat').value,
+      }]);
+      if(error) throw error;
+      await loadSubs(); renderSubs(); renderFinanceiro();
+    }
+    closeModal();
+  } catch(e) {
+    alert('Erro ao salvar: '+e.message);
+  } finally {
+    btn.disabled=false; btn.textContent='Salvar';
+  }
+}
+
+// ── DELETE ───────────────────────────────────────────────────
+async function deleteCliente(id) {
+  if(!confirm('Remover este cliente?'))return;
+  await sb.from('clientes').delete().eq('id',id).eq('user_id',currentUser.id);
+  await loadClientes(); renderClientes(); renderOverview(); renderFinanceiro();
+}
+async function deletePost(id) {
+  if(!confirm('Remover este post?'))return;
+  await sb.from('posts').delete().eq('id',id).eq('user_id',currentUser.id);
+  await loadPosts(); renderPosts(); renderCalendar();
+}
+async function deleteSub(id) {
+  if(!confirm('Remover esta ferramenta?'))return;
+  await sb.from('assinaturas').delete().eq('id',id).eq('user_id',currentUser.id);
+  await loadSubs(); renderSubs(); renderFinanceiro();
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+async function init() {
+  const {data:{session}} = await sb.auth.getSession();
+  if(session?.user) {
+    onLogin(session.user);
+  }
+  sb.auth.onAuthStateChange((event,session)=>{
+    if(event==='SIGNED_IN'&&session?.user) onLogin(session.user);
+  });
+}
 init();
 </script>
 </body>
