@@ -5,7 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RASC — Command Center</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+// ── PRIVACIDADE ──────────────────────────────────────────────
+let privacyOn = false;
+function togglePrivacy() {
+  privacyOn = !privacyOn;
+  const btn = document.getElementById('privacy-btn');
+  btn.classList.toggle('active', privacyOn);
+  btn.textContent = privacyOn ? '🙈 Dados ocultos' : '👁 Privacidade';
+  document.querySelectorAll('.priv-val').forEach(el => {
+    el.classList.toggle('priv-blur', privacyOn);
+  });
+}
+
+function copyCode(code, nome) {
+  if(!code){alert('Este cliente não tem código de acesso. Edite para gerar um.');return;}
+  const link = `https://rascempresarial.github.io/rasc-cliente?code=${code}`;
+  navigator.clipboard.writeText(link).then(()=>{
+    const msg = `Link do portal copiado!\n\nEnvie para ${nome}:\n${link}`;
+    alert(msg);
+  });
+}
+
+</script>
 <style>
 :root {
   --bg:#07080a;--surface:#0d0f13;--surface2:#13161c;--surface3:#181c24;
@@ -220,6 +242,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--syne);font-size:14
   .pipeline{grid-template-columns:1fr 1fr}
   .agent-grid{grid-template-columns:1fr 1fr}
 }
+
+/* PRIVACY MODE */
+.priv-blur{filter:blur(6px);user-select:none;transition:filter .3s}
+.privacy-btn{display:flex;align-items:center;gap:5px;padding:7px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--muted2);font-family:var(--syne);font-size:12px;cursor:pointer;transition:all .15s}
+.privacy-btn:hover{color:var(--text)}
+.privacy-btn.active{background:rgba(255,179,64,.1);border-color:rgba(255,179,64,.3);color:var(--amber)}
+.client-code{font-size:11px;font-family:var(--mono);color:var(--accent);background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.15);padding:2px 7px;border-radius:4px;cursor:pointer;letter-spacing:.05em}
+.client-code:hover{background:rgba(0,212,255,.15)}
+
 </style>
 </head>
 <body>
@@ -322,6 +353,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--syne);font-size:14
     <div class="topbar-right">
       <div class="pulse-live"><div class="pulse-dot"></div>ao vivo</div>
       <button class="icon-btn" onclick="loadAll()">↻ Atualizar</button>
+      <button class="privacy-btn" id="privacy-btn" onclick="togglePrivacy()" title="Ocultar dados sensíveis">👁 Privacidade</button>
       <button class="add-btn" onclick="openModal('cliente')">+ Novo cliente</button>
     </div>
   </div>
@@ -331,10 +363,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--syne);font-size:14
     <!-- OVERVIEW -->
     <div class="section active" id="section-overview">
       <div class="kpi-grid">
-        <div class="kpi-card c-cyan"><div class="kpi-label">Receita Mensal</div><div class="kpi-value" style="color:var(--accent)" id="ov-receita">R$ 0</div><div class="kpi-sub">clientes ativos</div></div>
-        <div class="kpi-card c-purple"><div class="kpi-label">Clientes Ativos</div><div class="kpi-value" style="color:var(--accent2)" id="ov-clientes">0</div><div class="kpi-sub">tráfego + IA</div></div>
+        <div class="kpi-card c-cyan"><div class="kpi-label">Receita Mensal</div><div class="kpi-value priv-val" style="color:var(--accent)" id="ov-receita">R$ 0</div><div class="kpi-sub">clientes ativos</div></div>
+        <div class="kpi-card c-purple"><div class="kpi-label">Clientes Ativos</div><div class="kpi-value priv-val" style="color:var(--accent2)" id="ov-clientes">0</div><div class="kpi-sub">tráfego + IA</div></div>
         <div class="kpi-card c-green"><div class="kpi-label">Leads no Funil</div><div class="kpi-value" style="color:var(--green)" id="ov-leads">0</div><div class="kpi-sub">pipeline ativo</div></div>
-        <div class="kpi-card c-amber"><div class="kpi-label">Custo Ferramentas</div><div class="kpi-value" style="color:var(--amber)" id="ov-subs">R$ 0</div><div class="kpi-sub">mensal</div></div>
+        <div class="kpi-card c-amber"><div class="kpi-label">Custo Ferramentas</div><div class="kpi-value priv-val" style="color:var(--amber)" id="ov-subs">R$ 0</div><div class="kpi-sub">mensal</div></div>
       </div>
       <div class="grid-65">
         <div class="card">
@@ -363,13 +395,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--syne);font-size:14
     <div class="section" id="section-clientes">
       <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
         <div class="kpi-card c-cyan"><div class="kpi-label">Total Clientes</div><div class="kpi-value" style="color:var(--accent)" id="cl-total">0</div><div class="kpi-sub">ativos e onboarding</div></div>
-        <div class="kpi-card c-green"><div class="kpi-label">Receita Mensal</div><div class="kpi-value" style="color:var(--green)" id="cl-receita">R$ 0</div><div class="kpi-sub">recorrente</div></div>
+        <div class="kpi-card c-green"><div class="kpi-label">Receita Mensal</div><div class="kpi-value priv-val" style="color:var(--green)" id="cl-receita">R$ 0</div><div class="kpi-sub">recorrente</div></div>
         <div class="kpi-card c-purple"><div class="kpi-label">Ticket Médio</div><div class="kpi-value" style="color:var(--accent2)" id="cl-ticket">R$ 0</div><div class="kpi-sub">por cliente</div></div>
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title">Carteira de Clientes</div><span class="card-action" onclick="openModal('cliente')">+ Adicionar cliente</span></div>
         <table class="table">
-          <thead><tr><th>Cliente</th><th>Serviço</th><th>Segmento</th><th>Mensalidade</th><th>Plataforma</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Cliente</th><th>Serviço</th><th>Segmento</th><th>Mensalidade</th><th>Código de Acesso</th><th>Status</th><th></th></tr></thead>
           <tbody id="clientes-body"><tr><td colspan="7" class="loading-row"><span class="spin"></span>carregando...</td></tr></tbody>
         </table>
       </div>
@@ -444,9 +476,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--syne);font-size:14
     <!-- FINANCEIRO -->
     <div class="section" id="section-financeiro">
       <div class="kpi-grid">
-        <div class="kpi-card c-green"><div class="kpi-label">Receita</div><div class="kpi-value" style="color:var(--green)" id="fin-receita">R$ 0</div><div class="kpi-sub">mês atual</div></div>
+        <div class="kpi-card c-green"><div class="kpi-label">Receita</div><div class="kpi-value priv-val" style="color:var(--green)" id="fin-receita">R$ 0</div><div class="kpi-sub">mês atual</div></div>
         <div class="kpi-card c-red"><div class="kpi-label">Custos Fixos</div><div class="kpi-value" style="color:var(--red)" id="fin-custos">R$ 0</div><div class="kpi-sub">ferramentas</div></div>
-        <div class="kpi-card c-cyan"><div class="kpi-label">Lucro Líquido</div><div class="kpi-value" style="color:var(--accent)" id="fin-lucro">R$ 0</div><div class="kpi-sub">estimado</div></div>
+        <div class="kpi-card c-cyan"><div class="kpi-label">Lucro Líquido</div><div class="kpi-value priv-val" style="color:var(--accent)" id="fin-lucro">R$ 0</div><div class="kpi-sub">estimado</div></div>
         <div class="kpi-card c-amber"><div class="kpi-label">Margem</div><div class="kpi-value" style="color:var(--amber)" id="fin-margem">0%</div><div class="kpi-sub">meta: 70%</div></div>
       </div>
       <div class="grid-2">
@@ -657,8 +689,8 @@ function renderClientes() {
     <td style="font-weight:500">${c.nome}</td>
     <td>${servicePill(c.servico)}</td>
     <td style="color:var(--muted2)">${c.segmento||'–'}</td>
-    <td style="font-family:var(--mono);color:var(--green)">${fmt(c.mensalidade)}</td>
-    <td style="font-family:var(--mono);font-size:12px">${c.plataforma||c.especialidade_ia||'–'}</td>
+    <td class="priv-val" style="font-family:var(--mono);color:var(--green)">${fmt(c.mensalidade)}</td>
+    <td><span class="client-code" onclick="copyCode('${c.codigo_acesso||''}','${c.nome}')" title="Clique para copiar">${c.codigo_acesso||'sem código'}</span></td>
     <td>${statusPill(c.status)}</td>
     <td><span style="color:var(--red);cursor:pointer;font-size:11px;font-family:var(--mono)" onclick="deleteCliente('${c.id}')">×</span></td>
   </tr>`).join('');
@@ -800,6 +832,11 @@ function openModal(type) {
 
   if(type==='cliente') {
     title.textContent = 'Novo Cliente';
+    // Gerar código único
+    setTimeout(()=>{
+      const el = document.getElementById('mf-codigo');
+      if(el && !el.value) el.value = 'RASC-' + Math.floor(1000+Math.random()*9000);
+    }, 50);
     fields.innerHTML = `
       <div style="margin-bottom:14px">
         <div style="font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Tipo de Serviço</div>
@@ -830,6 +867,10 @@ function openModal(type) {
         <div class="modal-field"><label>Status</label>
           <select id="mf-status"><option>Ativo</option><option>Onboarding</option><option>Pausado</option><option>Inativo</option></select>
         </div>
+      </div>
+      <div class="grid-2">
+        <div class="modal-field"><label>Código de Acesso (gerado automaticamente)</label><input id="mf-codigo" placeholder="Ex: RASC-2847" style="font-family:var(--mono);letter-spacing:.05em" readonly></div>
+        <div class="modal-field"><label>Ad Account ID (Meta)</label><input id="mf-adaccount" placeholder="act_XXXXXXXXXX"></div>
       </div>
       <div id="fields-trafego">
         <div class="grid-2">
