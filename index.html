@@ -5,29 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RASC — Command Center</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-// ── PRIVACIDADE ──────────────────────────────────────────────
-let privacyOn = false;
-function togglePrivacy() {
-  privacyOn = !privacyOn;
-  const btn = document.getElementById('privacy-btn');
-  btn.classList.toggle('active', privacyOn);
-  btn.textContent = privacyOn ? '🙈 Dados ocultos' : '👁 Privacidade';
-  document.querySelectorAll('.priv-val').forEach(el => {
-    el.classList.toggle('priv-blur', privacyOn);
-  });
-}
-
-function copyCode(code, nome) {
-  if(!code){alert('Este cliente não tem código de acesso. Edite para gerar um.');return;}
-  const link = `https://rascempresarial.github.io/rasc-cliente?code=${code}`;
-  navigator.clipboard.writeText(link).then(()=>{
-    const msg = `Link do portal copiado!\n\nEnvie para ${nome}:\n${link}`;
-    alert(msg);
-  });
-}
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --bg:#07080a;--surface:#0d0f13;--surface2:#13161c;--surface3:#181c24;
@@ -1051,6 +1029,32 @@ async function deleteSub(id) {
   if(!confirm('Remover esta ferramenta?'))return;
   await sb.from('assinaturas').delete().eq('id',id).eq('user_id',currentUser.id);
   await loadSubs(); renderSubs(); renderFinanceiro();
+}
+
+
+// ── PRIVACIDADE ──────────────────────────────────────────────
+let privacyOn = false;
+function togglePrivacy() {
+  privacyOn = !privacyOn;
+  const btn = document.getElementById('privacy-btn');
+  btn.classList.toggle('active', privacyOn);
+  btn.innerHTML = privacyOn ? '🙈 Oculto' : '👁 Privacidade';
+  document.querySelectorAll('.priv-val').forEach(el => {
+    el.classList.toggle('priv-blur', privacyOn);
+  });
+}
+
+function copyCode(code, nome) {
+  if(!code || code === 'sem código'){
+    alert('Este cliente não tem código ainda.\nVá no Supabase → clientes → edite codigo_acesso para ' + nome);
+    return;
+  }
+  const link = 'https://rascempresarial.github.io/rasc-cliente?code=' + code;
+  navigator.clipboard.writeText(link).then(function(){
+    alert('✅ Link copiado!\n\nEnvie para ' + nome + ':\n\n' + link);
+  }).catch(function(){
+    prompt('Copie o link:', link);
+  });
 }
 
 // ── INIT ─────────────────────────────────────────────────────
